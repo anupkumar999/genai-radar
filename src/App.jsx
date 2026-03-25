@@ -10,14 +10,16 @@ function App() {
 
   // --- FILTERS ---
   const [topic, setTopic] = useState('agents');
-  const [timeRange, setTimeRange] = useState('1-year'); // Default to 1-year to ensure results
+  const [timeRange, setTimeRange] = useState('1-year'); // Default to 1-year
   const [sortBy, setSortBy] = useState('stars');
 
+  // CRITICAL FIX: GitHub API does not support `topic:X OR topic:Y`. 
+  // We must search for the raw keywords in the repository name/description/README.
   const topics = [
-    { id: 'all-ai', name: '🌍 All AI & ML', query: 'topic:machine-learning OR topic:artificial-intelligence OR topic:generative-ai' },
-    { id: 'gen-ai', name: '✨ GenAI & LLMs', query: 'topic:llm OR topic:generative-ai OR topic:gpt' },
-    { id: 'agents', name: '🤖 Agents & RAG', query: 'topic:agents OR topic:rag OR topic:langchain OR topic:autogen' },
-    { id: 'skills', name: '🛠️ Engineering', query: 'topic:mlops OR topic:prompt-engineering OR topic:fine-tuning' }
+    { id: 'all-ai', name: '🌍 All AI & ML', query: '"machine learning" OR "artificial intelligence" OR "generative ai"' },
+    { id: 'gen-ai', name: '✨ GenAI & LLMs', query: 'llm OR "generative ai" OR gpt' },
+    { id: 'agents', name: '🤖 Agents & RAG', query: 'agents OR rag OR langchain OR autogen' },
+    { id: 'skills', name: '🛠️ Engineering', query: 'mlops OR "prompt engineering" OR "fine-tuning"' }
   ];
 
   const timeRanges = [
@@ -59,10 +61,9 @@ function App() {
       }
 
       try {
-        // console.log("Fetching query:", q); // Helpful for debugging
         const response = await fetch(`https://api.github.com/search/repositories?q=${encodeURIComponent(q)}&sort=${sortBy === 'rising' ? 'stars' : sortBy}&order=desc&per_page=30`);
         
-        if (response.status === 403) {
+        if (response.status === 403 || response.status === 422) {
           setApiError(true);
           setRepos([]);
         } else if (response.ok) {
