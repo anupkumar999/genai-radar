@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Terminal, Star, GitFork, Clock, BookOpen, Code2, Search, Calendar, TrendingUp, Sparkles, AlertCircle } from 'lucide-react';
+import { Terminal, Star, GitFork, Clock, BookOpen, Code2, Search, Calendar, TrendingUp, Sparkles, AlertCircle, Copy, Check } from 'lucide-react';
 import { formatDistanceToNow, subMonths, subYears, format } from 'date-fns';
 
 function App() {
@@ -7,18 +7,18 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [apiError, setApiError] = useState(false);
+  const [copiedId, setCopiedId] = useState(null);
 
   // --- FILTERS ---
   const [topic, setTopic] = useState('agents');
-  const [timeRange, setTimeRange] = useState('1-year'); // Default to 1-year
+  const [timeRange, setTimeRange] = useState('1-year');
   const [sortBy, setSortBy] = useState('stars');
+  const [language, setLanguage] = useState('all');
 
-  // CRITICAL FIX: GitHub API does not support `topic:X OR topic:Y`. 
-  // We must search for the raw keywords in the repository name/description/README.
   const topics = [
     { id: 'all-ai', name: '🌍 All AI & ML', query: '"machine learning" OR "artificial intelligence" OR "generative ai"' },
-    { id: 'gen-ai', name: '✨ GenAI & LLMs', query: 'llm OR gpt OR claude OR gemini' },
-    { id: 'agents', name: '🤖 Agents & RAG', query: 'agents OR rag OR langchain OR crewai' },
+    { id: 'gen-ai', name: '✨ GenAI & LLMs', query: 'llm OR "generative ai" OR gpt' },
+    { id: 'agents', name: '🤖 Agents & RAG', query: 'agents OR rag OR langchain OR autogen' },
     { id: 'skills', name: '🛠️ Engineering', query: 'mlops OR "prompt engineering" OR "fine-tuning"' }
   ];
 
@@ -35,6 +35,16 @@ function App() {
     { id: 'rising', name: 'Rising Gems (New)', val: 'updated' } 
   ];
 
+  const languages = [
+    { id: 'all', name: 'Any Language' },
+    { id: 'python', name: 'Python' },
+    { id: 'typescript', name: 'TypeScript' },
+    { id: 'go', name: 'Go' },
+    { id: 'rust', name: 'Rust' },
+    { id: 'cpp', name: 'C++' },
+    { id: 'jupyter-notebook', name: 'Jupyter' }
+  ];
+
   // --- FETCH LOGIC ---
   useEffect(() => {
     const fetchRepos = async () => {
@@ -42,8 +52,6 @@ function App() {
       setApiError(false);
       
       const activeTopic = topics.find(t => t.id === topic);
-      
-      // Rising gems look for newer repos with fewer stars. Famous looks for high stars.
       let starQuery = sortBy === 'rising' ? 'stars:10..500' : 'stars:>50';
       let q = `${activeTopic.query} ${starQuery}`;
 
@@ -51,9 +59,12 @@ function App() {
       const dateStr = activeTime.getDate();
       
       if (dateStr) {
-        // If "Rising Gems", we want repos CREATED recently. Otherwise, just PUSHED (updated) recently.
         const dateType = sortBy === 'rising' ? 'created' : 'pushed';
         q += ` ${dateType}:>${dateStr}`;
+      }
+
+      if (language !== 'all') {
+        q += ` language:${language}`;
       }
 
       if (searchQuery.trim().length > 0) {
@@ -85,7 +96,15 @@ function App() {
     }, 500);
 
     return () => clearTimeout(delayDebounceFn);
-  }, [topic, timeRange, sortBy, searchQuery]);
+  }, [topic, timeRange, sortBy, language, searchQuery]);
+
+  const handleCopyClone = (e, repo) => {
+    e.preventDefault();
+    e.stopPropagation();
+    navigator.clipboard.writeText(`git clone ${repo.clone_url}`);
+    setCopiedId(repo.id);
+    setTimeout(() => setCopiedId(null), 2000);
+  };
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 font-sans selection:bg-blue-100 selection:text-blue-900 pb-20">
@@ -151,13 +170,27 @@ function App() {
             ))}
           </div>
 
-          <div className="flex flex-wrap gap-4 w-full lg:w-auto border-t lg:border-t-0 border-slate-100 pt-4 lg:pt-0">
+          <div className="flex flex-wrap gap-3 w-full lg:w-auto border-t lg:border-t-0 border-slate-100 pt-4 lg:pt-0">
+            
+            <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 focus-within:ring-2 ring-blue-500/20">
+              <Code2 size={16} className="text-slate-400" />
+              <select 
+                value={language} 
+                onChange={(e) => setLanguage(e.target.value)}
+                className="bg-transparent text-sm font-bold text-slate-700 focus:outline-none cursor-pointer w-full"
+              >
+                {languages.map(l => (
+                  <option key={l.id} value={l.id}>{l.name}</option>
+                ))}
+              </select>
+            </div>
+
             <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 focus-within:ring-2 ring-blue-500/20">
               <Calendar size={16} className="text-slate-400" />
               <select 
                 value={timeRange} 
                 onChange={(e) => setTimeRange(e.target.value)}
-                className="bg-transparent text-sm font-bold text-slate-700 focus:outline-none cursor-pointer"
+                className="bg-transparent text-sm font-bold text-slate-700 focus:outline-none cursor-pointer w-full"
               >
                 {timeRanges.map(t => (
                   <option key={t.id} value={t.id}>{t.name}</option>
@@ -170,7 +203,7 @@ function App() {
               <select 
                 value={sortBy} 
                 onChange={(e) => setSortBy(e.target.value)}
-                className={`bg-transparent text-sm font-bold focus:outline-none cursor-pointer ${sortBy === 'rising' ? 'text-amber-600' : 'text-slate-700'}`}
+                className={`bg-transparent text-sm font-bold focus:outline-none cursor-pointer w-full ${sortBy === 'rising' ? 'text-amber-600' : 'text-slate-700'}`}
               >
                 {sortOptions.map(s => (
                   <option key={s.id} value={s.val}>{s.name}</option>
@@ -202,13 +235,13 @@ function App() {
                 className={`group bg-white border ${sortBy === 'rising' ? 'border-amber-200 hover:border-amber-400' : 'border-slate-200 hover:border-blue-400'} rounded-2xl p-6 transition-all flex flex-col h-full relative overflow-hidden shadow-sm hover:shadow-xl`}>
                 
                 {sortBy === 'rising' && (
-                  <div className="absolute top-0 right-0 bg-amber-100 text-amber-700 text-[10px] font-black px-3 py-1 rounded-bl-xl border-b border-l border-amber-200 uppercase tracking-widest">
+                  <div className="absolute top-0 right-0 bg-amber-100 text-amber-700 text-[10px] font-black px-3 py-1 rounded-bl-xl border-b border-l border-amber-200 uppercase tracking-widest z-10">
                     Hidden Gem
                   </div>
                 )}
 
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center gap-3 overflow-hidden pr-16">
+                <div className={`flex items-start justify-between mb-3 ${sortBy === 'rising' ? 'mt-3' : ''}`}>
+                  <div className="flex items-center gap-3 overflow-hidden">
                     <div className={`p-2 rounded-lg border transition-colors ${sortBy === 'rising' ? 'bg-amber-50 border-amber-100 group-hover:bg-amber-100 group-hover:border-amber-300' : 'bg-slate-50 border-slate-100 group-hover:bg-blue-50 group-hover:border-blue-200'}`}>
                       <BookOpen size={20} className={`${sortBy === 'rising' ? 'text-amber-600' : 'text-blue-600'} shrink-0`} />
                     </div>
@@ -216,12 +249,26 @@ function App() {
                       {repo.name}
                     </h3>
                   </div>
+                  
+                  {/* Productivity Boost: 1-Click Copy Clone */}
+                  <button 
+                    onClick={(e) => handleCopyClone(e, repo)}
+                    className="shrink-0 p-2 bg-slate-50 hover:bg-blue-50 border border-slate-200 hover:border-blue-200 rounded-lg text-slate-400 hover:text-blue-600 transition-all shadow-sm z-20"
+                    title="Copy Git Clone Command"
+                  >
+                    {copiedId === repo.id ? <Check size={16} className="text-emerald-500" /> : <Copy size={16} />}
+                  </button>
                 </div>
                 
                 <p className="text-slate-600 line-clamp-2 mb-5 flex-grow font-medium leading-relaxed">{repo.description}</p>
                 
                 <div className="flex flex-wrap gap-2 mb-5">
-                  {repo.topics && repo.topics.slice(0, 4).map(topic => (
+                  {repo.language && (
+                     <span className="px-2.5 py-1 border border-indigo-200 bg-indigo-50 text-indigo-600 rounded-md text-[10px] font-extrabold uppercase tracking-wider">
+                       {repo.language}
+                     </span>
+                  )}
+                  {repo.topics && repo.topics.slice(0, 3).map(topic => (
                     <span key={topic} className={`px-2.5 py-1 border rounded-md text-[10px] font-extrabold uppercase tracking-wider ${sortBy === 'rising' ? 'bg-amber-50/50 border-amber-100 text-amber-600' : 'bg-slate-50 border-slate-200 text-slate-500'}`}>
                       {topic}
                     </span>
