@@ -3,7 +3,7 @@ import { Terminal, Star, GitFork, Clock, BookOpen, Code2, Search, Calendar, Tren
 import { formatDistanceToNow, subMonths, subYears, format } from 'date-fns';
 
 function App() {
-  const [mainView, setMainView] = useState('repos'); // 'repos' or 'research'
+  const [mainView, setMainView] = useState('repos'); 
   
   // --- REPOS STATE ---
   const [repos, setRepos] = useState([]);
@@ -19,46 +19,46 @@ function App() {
   const [author, setAuthor] = useState('all');
 
   // --- RESEARCH STATE ---
-  const [researchTab, setResearchTab] = useState('papers'); // 'papers' or 'news'
-  const [researchSortBy, setResearchSortBy] = useState('date'); // 'date' or 'points'
+  const [researchTab, setResearchTab] = useState('papers'); 
+  const [researchSortBy, setResearchSortBy] = useState('date'); 
   const [papers, setPapers] = useState([]);
   const [news, setNews] = useState([]);
   const [loadingResearch, setLoadingResearch] = useState(true);
 
-  // --- REPOS CONSTANTS ---
+  // --- CONSTANTS ---
   const topics = [
-    { id: 'all-ai', name: '🌍 All AI & ML', query: '"machine learning" OR "artificial intelligence" OR "generative ai"' },
-    { id: 'gen-ai', name: '✨ GenAI & LLMs', query: 'llm OR "generative ai" OR gpt' },
-    { id: 'agents', name: '🤖 Agents & RAG', query: 'agents OR rag OR langchain OR autogen' },
-    { id: 'skills', name: '🛠️ Engineering', query: 'mlops OR "prompt engineering" OR "fine-tuning"' }
+    { id: 'all-ai', name: 'All AI & ML', query: '"machine learning" OR "artificial intelligence" OR "generative ai"' },
+    { id: 'gen-ai', name: 'GenAI & LLMs', query: 'llm OR "generative ai" OR gpt' },
+    { id: 'agents', name: 'Agents & RAG', query: 'agents OR rag OR langchain OR autogen' },
+    { id: 'skills', name: 'Engineering', query: 'mlops OR "prompt engineering" OR "fine-tuning"' }
   ];
 
   const authors = [
-    { id: 'all', name: 'All Developers (Global)' },
-    { id: 'org:openai', name: '🏢 OpenAI' },
-    { id: 'org:anthropic', name: '🏢 Anthropic' },
-    { id: 'org:google-deepmind', name: '🏢 Google DeepMind' },
-    { id: 'org:meta-llama', name: '🏢 Meta Llama' },
-    { id: 'org:huggingface', name: '🏢 Hugging Face' },
-    { id: 'org:mistralai', name: '🏢 Mistral AI' },
-    { id: 'user:karpathy', name: '🧠 Andrej Karpathy' },
-    { id: 'user:hwchase17', name: '🧠 Harrison Chase' },
-    { id: 'user:ggerganov', name: '🧠 Georgi Gerganov' },
-    { id: 'user:simonw', name: '🧠 Simon Willison' },
-    { id: 'user:jph00', name: '🧠 Jeremy Howard' }
+    { id: 'all', name: 'Global Network' },
+    { id: 'org:openai', name: 'OpenAI' },
+    { id: 'org:anthropic', name: 'Anthropic' },
+    { id: 'org:google-deepmind', name: 'Google DeepMind' },
+    { id: 'org:meta-llama', name: 'Meta Llama' },
+    { id: 'org:huggingface', name: 'Hugging Face' },
+    { id: 'org:mistralai', name: 'Mistral AI' },
+    { id: 'user:karpathy', name: 'Andrej Karpathy' },
+    { id: 'user:hwchase17', name: 'Harrison Chase' },
+    { id: 'user:ggerganov', name: 'Georgi Gerganov' },
+    { id: 'user:simonw', name: 'Simon Willison' },
+    { id: 'user:jph00', name: 'Jeremy Howard' }
   ];
 
   const timeRanges = [
-    { id: '1-month', name: 'Updated Past Month', getDate: () => format(subMonths(new Date(), 1), 'yyyy-MM-dd') },
-    { id: '6-months', name: 'Updated Past 6 Months', getDate: () => format(subMonths(new Date(), 6), 'yyyy-MM-dd') },
-    { id: '1-year', name: 'Updated Past Year', getDate: () => format(subYears(new Date(), 1), 'yyyy-MM-dd') },
+    { id: '1-month', name: 'Past Month', getDate: () => format(subMonths(new Date(), 1), 'yyyy-MM-dd') },
+    { id: '6-months', name: 'Past 6 Months', getDate: () => format(subMonths(new Date(), 6), 'yyyy-MM-dd') },
+    { id: '1-year', name: 'Past Year', getDate: () => format(subYears(new Date(), 1), 'yyyy-MM-dd') },
     { id: 'all-time', name: 'All Time', getDate: () => null }
   ];
 
   const sortOptions = [
-    { id: 'stars', name: 'Highest Rated (Famous)', val: 'stars' },
+    { id: 'stars', name: 'Highest Rated', val: 'stars' },
     { id: 'updated', name: 'Recently Active', val: 'updated' },
-    { id: 'rising', name: 'Rising Gems (New)', val: 'updated' } 
+    { id: 'rising', name: 'Rising Gems', val: 'updated' } 
   ];
 
   const researchSortOptions = [
@@ -128,7 +128,6 @@ function App() {
     return () => clearTimeout(delayDebounceFn);
   }, [topic, timeRange, sortBy, language, author, searchQuery, mainView]);
 
-  // Reset research data when sort changes
   useEffect(() => {
     setPapers([]);
     setNews([]);
@@ -225,89 +224,91 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-800 font-sans selection:bg-blue-100 selection:text-blue-900 pb-20">
+    <div className="min-h-screen bg-[#0a0a0a] text-zinc-300 font-sans selection:bg-indigo-500/30 selection:text-indigo-200 pb-20">
       
       {/* Global Header */}
-      <header className="border-b border-slate-200 bg-white/80 backdrop-blur-xl sticky top-0 z-50">
+      <header className="border-b border-white/5 bg-[#0a0a0a]/80 backdrop-blur-xl sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-[72px] flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="bg-blue-600 p-2 rounded-xl shadow-sm">
-              <Terminal size={22} className="text-white" />
+            <div className="bg-indigo-500/10 border border-indigo-500/20 p-2 rounded-xl shadow-[0_0_15px_rgba(99,102,241,0.1)]">
+              <Terminal size={22} className="text-indigo-400" />
             </div>
-            <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">
-              GenAI<span className="text-blue-600">_Radar</span>
+            <h1 className="text-xl font-bold text-zinc-100 tracking-tight">
+              GenAI<span className="text-indigo-500 font-light">_Radar</span>
             </h1>
           </div>
 
           {/* Top Level Navigation */}
-          <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200">
+          <div className="flex bg-white/5 p-1 rounded-xl border border-white/5 backdrop-blur-md">
             <button 
               onClick={() => setMainView('repos')}
-              className={`flex items-center gap-2 px-5 py-2 text-sm font-bold rounded-lg transition-all ${
-                mainView === 'repos' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500 hover:text-slate-800'
+              className={`flex items-center gap-2 px-6 py-2 text-sm font-medium rounded-lg transition-all ${
+                mainView === 'repos' ? 'bg-white/10 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'
               }`}
             >
               <Code2 size={16} /> Code & Tools
             </button>
             <button 
               onClick={() => setMainView('research')}
-              className={`flex items-center gap-2 px-5 py-2 text-sm font-bold rounded-lg transition-all ${
-                mainView === 'research' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500 hover:text-slate-800'
+              className={`flex items-center gap-2 px-6 py-2 text-sm font-medium rounded-lg transition-all ${
+                mainView === 'research' ? 'bg-white/10 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'
               }`}
             >
-              <Library size={16} /> Papers & Reading
+              <Library size={16} /> Research
             </button>
           </div>
 
           <div className="hidden md:flex relative w-[300px]">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={16} />
             <input 
               type="text" 
               placeholder={`Search ${mainView}...`}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-slate-100 border border-slate-200 rounded-full py-2 pl-10 pr-4 text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all placeholder:text-slate-500"
-              disabled={mainView === 'research'} // Disable global search for research tab for now
+              className="w-full bg-white/5 border border-white/10 rounded-full py-2 pl-10 pr-4 text-sm font-medium text-zinc-200 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all placeholder:text-zinc-600"
+              disabled={mainView === 'research'} 
             />
           </div>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 pt-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 pt-10">
         
         {/* ========================================= */}
         {/* VIEW 1: REPOSITORY EXPLORER               */}
         {/* ========================================= */}
         {mainView === 'repos' && (
-          <div className="animate-in fade-in duration-500">
-            <div className="mb-8">
-              <h2 className="text-3xl font-extrabold text-slate-900 flex items-center gap-2">
-                <Code2 className="text-blue-600" size={28}/> Repository Explorer
+          <div className="animate-in fade-in duration-700">
+            <div className="mb-10">
+              <h2 className="text-3xl font-semibold text-zinc-100 flex items-center gap-3 tracking-tight">
+                Repository Explorer
               </h2>
-              <p className="text-slate-500 font-medium mt-2 text-lg">Discover the industry giants, top AI labs, and hidden Agent gems.</p>
+              <p className="text-zinc-500 font-normal mt-2 text-base max-w-2xl leading-relaxed">High-signal engineering tools, foundational models, and agentic frameworks.</p>
             </div>
 
             {apiError && (
-              <div className="mb-6 bg-orange-50 border border-orange-200 text-orange-800 p-4 rounded-xl flex items-start gap-3">
-                <AlertCircle className="shrink-0 mt-0.5 text-orange-600" size={20}/>
+              <div className="mb-8 bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-2xl flex items-start gap-3 backdrop-blur-sm">
+                <AlertCircle className="shrink-0 mt-0.5" size={18}/>
                 <div>
-                  <h4 className="font-bold">GitHub API Rate Limit Exceeded</h4>
-                  <p className="text-sm font-medium opacity-90">GitHub limits anonymous searches to 10 per minute. Please wait 60 seconds before changing filters again.</p>
+                  <h4 className="font-semibold">GitHub API Rate Limit</h4>
+                  <p className="text-sm opacity-80 mt-1">Please wait 60 seconds before changing filters to avoid anonymous rate limits.</p>
                 </div>
               </div>
             )}
 
-            <div className="bg-white border border-slate-200 rounded-2xl p-4 mb-8 shadow-sm flex flex-col xl:flex-row gap-4 justify-between items-start xl:items-center">
-              <div className={`flex flex-wrap gap-2 ${author !== 'all' ? 'opacity-50 pointer-events-none' : ''}`}>
+            {/* Filter Bar */}
+            <div className="bg-white/5 border border-white/5 rounded-2xl p-4 mb-10 backdrop-blur-sm flex flex-col xl:flex-row gap-6 justify-between items-start xl:items-center">
+              
+              <div className={`flex flex-wrap gap-2 ${author !== 'all' ? 'opacity-30 pointer-events-none grayscale' : ''} transition-all`}>
                 {topics.map(t => (
                   <button
                     key={t.id}
                     onClick={() => setTopic(t.id)}
                     disabled={author !== 'all'}
-                    className={`px-4 py-2 text-sm font-bold rounded-xl transition-all ${
+                    className={`px-5 py-2 text-xs font-semibold rounded-xl transition-all ${
                       topic === t.id && author === 'all'
-                        ? 'bg-blue-600 text-white shadow-md' 
-                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                        ? 'bg-indigo-500 text-white shadow-[0_0_15px_rgba(99,102,241,0.4)]' 
+                        : 'bg-white/5 text-zinc-400 hover:bg-white/10 hover:text-zinc-200'
                     }`}
                   >
                     {t.name}
@@ -315,129 +316,141 @@ function App() {
                 ))}
               </div>
 
-              <div className="flex flex-wrap gap-3 w-full xl:w-auto border-t xl:border-t-0 border-slate-100 pt-4 xl:pt-0">
-                <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 focus-within:ring-2 ring-blue-500/20">
-                  <Users size={16} className="text-slate-400" />
+              <div className="flex flex-wrap gap-3 w-full xl:w-auto border-t xl:border-t-0 border-white/5 pt-5 xl:pt-0">
+                <div className="flex items-center gap-2 bg-black/20 border border-white/10 rounded-xl px-4 py-2 hover:border-white/20 transition-colors focus-within:border-indigo-500/50">
+                  <Users size={14} className="text-zinc-500" />
                   <select 
                     value={author} 
                     onChange={(e) => setAuthor(e.target.value)}
-                    className={`bg-transparent text-sm font-bold focus:outline-none cursor-pointer w-full ${author !== 'all' ? 'text-blue-700' : 'text-slate-700'}`}
+                    className={`bg-transparent text-xs font-medium focus:outline-none cursor-pointer w-full appearance-none pr-4 ${author !== 'all' ? 'text-indigo-400' : 'text-zinc-400'}`}
                   >
-                    {authors.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+                    {authors.map(a => <option key={a.id} value={a.id} className="bg-zinc-900">{a.name}</option>)}
                   </select>
                 </div>
 
-                <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 focus-within:ring-2 ring-blue-500/20">
-                  <Code2 size={16} className="text-slate-400" />
+                <div className="flex items-center gap-2 bg-black/20 border border-white/10 rounded-xl px-4 py-2 hover:border-white/20 transition-colors focus-within:border-indigo-500/50">
+                  <Code2 size={14} className="text-zinc-500" />
                   <select 
                     value={language} 
                     onChange={(e) => setLanguage(e.target.value)}
-                    className="bg-transparent text-sm font-bold text-slate-700 focus:outline-none cursor-pointer w-full"
+                    className="bg-transparent text-xs font-medium text-zinc-400 focus:outline-none cursor-pointer w-full appearance-none pr-4"
                   >
-                    {languages.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+                    {languages.map(l => <option key={l.id} value={l.id} className="bg-zinc-900">{l.name}</option>)}
                   </select>
                 </div>
 
-                <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 focus-within:ring-2 ring-blue-500/20">
-                  <Calendar size={16} className="text-slate-400" />
+                <div className="flex items-center gap-2 bg-black/20 border border-white/10 rounded-xl px-4 py-2 hover:border-white/20 transition-colors focus-within:border-indigo-500/50">
+                  <Calendar size={14} className="text-zinc-500" />
                   <select 
                     value={timeRange} 
                     onChange={(e) => setTimeRange(e.target.value)}
-                    className="bg-transparent text-sm font-bold text-slate-700 focus:outline-none cursor-pointer w-full"
+                    className="bg-transparent text-xs font-medium text-zinc-400 focus:outline-none cursor-pointer w-full appearance-none pr-4"
                   >
-                    {timeRanges.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                    {timeRanges.map(t => <option key={t.id} value={t.id} className="bg-zinc-900">{t.name}</option>)}
                   </select>
                 </div>
 
-                <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 focus-within:ring-2 ring-blue-500/20">
-                  {sortBy === 'rising' ? <Sparkles size={16} className="text-amber-500" /> : <TrendingUp size={16} className="text-slate-400" />}
+                <div className="flex items-center gap-2 bg-black/20 border border-white/10 rounded-xl px-4 py-2 hover:border-white/20 transition-colors focus-within:border-indigo-500/50">
+                  {sortBy === 'rising' ? <Sparkles size={14} className="text-amber-400" /> : <TrendingUp size={14} className="text-zinc-500" />}
                   <select 
                     value={sortBy} 
                     onChange={(e) => setSortBy(e.target.value)}
-                    className={`bg-transparent text-sm font-bold focus:outline-none cursor-pointer w-full ${sortBy === 'rising' ? 'text-amber-600' : 'text-slate-700'}`}
+                    className={`bg-transparent text-xs font-medium focus:outline-none cursor-pointer w-full appearance-none pr-4 ${sortBy === 'rising' ? 'text-amber-400' : 'text-zinc-400'}`}
                   >
-                    {sortOptions.map(s => <option key={s.id} value={s.val}>{s.name}</option>)}
+                    {sortOptions.map(s => <option key={s.id} value={s.val} className="bg-zinc-900">{s.name}</option>)}
                   </select>
                 </div>
               </div>
             </div>
 
+            {/* Mobile Search */}
+            <div className="md:hidden relative mb-8">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" size={16} />
+              <input 
+                type="text" 
+                placeholder="Search AI repositories..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-white/5 border border-white/10 rounded-2xl py-3 pl-11 pr-4 text-sm font-medium text-zinc-200 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50"
+              />
+            </div>
+
             {loadingRepos ? (
-              <div className="flex justify-center py-20">
-                <div className="w-10 h-10 border-4 border-slate-200 border-t-blue-600 rounded-full animate-spin"></div>
+              <div className="flex justify-center py-32">
+                <div className="w-8 h-8 border-2 border-white/10 border-t-indigo-500 rounded-full animate-spin"></div>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
                 {repos.length > 0 ? repos.map((repo) => (
                   <a key={repo.id} href={repo.html_url} target="_blank" rel="noreferrer" 
-                    className={`group bg-white border ${sortBy === 'rising' ? 'border-amber-200 hover:border-amber-400' : 'border-slate-200 hover:border-blue-400'} rounded-2xl p-6 transition-all flex flex-col h-full relative overflow-hidden shadow-sm hover:shadow-xl`}>
+                    className={`group bg-[#121212] border ${sortBy === 'rising' ? 'border-amber-500/30 hover:border-amber-500/60 shadow-[0_0_15px_rgba(245,158,11,0.05)]' : 'border-white/5 hover:border-white/20'} rounded-3xl p-7 transition-all duration-300 flex flex-col h-full relative`}>
                     
                     {sortBy === 'rising' && (
-                      <div className="absolute top-0 right-0 bg-amber-100 text-amber-700 text-[10px] font-black px-3 py-1 rounded-bl-xl border-b border-l border-amber-200 uppercase tracking-widest z-10">
+                      <div className="absolute top-0 right-0 bg-amber-500/10 text-amber-500 text-[9px] font-bold px-3 py-1.5 rounded-bl-2xl border-b border-l border-amber-500/20 uppercase tracking-widest backdrop-blur-md z-10">
                         Hidden Gem
                       </div>
                     )}
 
-                    <div className={`flex items-start justify-between mb-3 ${sortBy === 'rising' ? 'mt-3' : ''}`}>
-                      <div className="flex items-center gap-3 overflow-hidden">
+                    <div className={`flex items-start justify-between mb-5 ${sortBy === 'rising' ? 'mt-2' : ''}`}>
+                      <div className="flex items-center gap-4 overflow-hidden">
                         {author !== 'all' ? (
-                           <img src={repo.owner.avatar_url} alt={repo.owner.login} className="w-10 h-10 rounded-lg border border-slate-200 shadow-sm shrink-0" />
+                           <img src={repo.owner.avatar_url} alt={repo.owner.login} className="w-12 h-12 rounded-2xl border border-white/10 object-cover shrink-0" />
                         ) : (
-                          <div className={`p-2 rounded-lg border transition-colors ${sortBy === 'rising' ? 'bg-amber-50 border-amber-100 group-hover:bg-amber-100 group-hover:border-amber-300' : 'bg-slate-50 border-slate-100 group-hover:bg-blue-50 group-hover:border-blue-200'}`}>
-                            <BookOpen size={20} className={`${sortBy === 'rising' ? 'text-amber-600' : 'text-blue-600'} shrink-0`} />
+                          <div className={`w-12 h-12 flex items-center justify-center rounded-2xl border transition-colors ${sortBy === 'rising' ? 'bg-amber-500/10 border-amber-500/20 text-amber-500' : 'bg-white/5 border-white/10 text-zinc-400 group-hover:bg-indigo-500/10 group-hover:border-indigo-500/20 group-hover:text-indigo-400'}`}>
+                            <BookOpen size={20} className="shrink-0" />
                           </div>
                         )}
-                        <h3 className={`text-lg font-bold truncate transition-colors ${sortBy === 'rising' ? 'text-slate-900 group-hover:text-amber-600' : 'text-slate-900 group-hover:text-blue-600'}`} title={repo.full_name}>
+                        <h3 className={`text-lg font-semibold truncate transition-colors tracking-tight ${sortBy === 'rising' ? 'text-zinc-100 group-hover:text-amber-400' : 'text-zinc-100 group-hover:text-indigo-400'}`} title={repo.full_name}>
                           {author !== 'all' ? repo.name : repo.full_name.split('/')[1]}
                         </h3>
                       </div>
                       
                       <button 
                         onClick={(e) => handleCopyClone(e, repo)}
-                        className="shrink-0 p-2 bg-slate-50 hover:bg-blue-50 border border-slate-200 hover:border-blue-200 rounded-lg text-slate-400 hover:text-blue-600 transition-all shadow-sm z-20"
+                        className="shrink-0 p-2.5 bg-black/20 hover:bg-white/10 border border-white/5 hover:border-white/20 rounded-xl text-zinc-500 hover:text-white transition-all z-20 backdrop-blur-sm"
                         title="Copy Git Clone Command"
                       >
-                        {copiedId === repo.id ? <Check size={16} className="text-emerald-500" /> : <Copy size={16} />}
+                        {copiedId === repo.id ? <Check size={16} className="text-emerald-400" /> : <Copy size={16} />}
                       </button>
                     </div>
                     
-                    <p className="text-slate-600 line-clamp-2 mb-5 flex-grow font-medium leading-relaxed">{repo.description}</p>
+                    <p className="text-zinc-400 text-sm line-clamp-3 mb-6 flex-grow font-normal leading-relaxed">{repo.description || "No description provided."}</p>
                     
-                    <div className="flex flex-wrap gap-2 mb-5">
+                    <div className="flex flex-wrap gap-2 mb-6">
                       {repo.language && (
-                         <span className="px-2.5 py-1 border border-indigo-200 bg-indigo-50 text-indigo-600 rounded-md text-[10px] font-extrabold uppercase tracking-wider">
+                         <span className="px-3 py-1 border border-indigo-500/20 bg-indigo-500/10 text-indigo-300 rounded-lg text-[10px] font-semibold uppercase tracking-wider">
                            {repo.language}
                          </span>
                       )}
                       {repo.topics && repo.topics.slice(0, 3).map(topic => (
-                        <span key={topic} className={`px-2.5 py-1 border rounded-md text-[10px] font-extrabold uppercase tracking-wider ${sortBy === 'rising' ? 'bg-amber-50/50 border-amber-100 text-amber-600' : 'bg-slate-50 border-slate-200 text-slate-500'}`}>
+                        <span key={topic} className={`px-3 py-1 border rounded-lg text-[10px] font-semibold uppercase tracking-wider ${sortBy === 'rising' ? 'bg-amber-500/5 border-amber-500/20 text-amber-400' : 'bg-white/5 border-white/10 text-zinc-500'}`}>
                           {topic}
                         </span>
                       ))}
                     </div>
 
-                    <div className="flex items-center justify-between text-xs font-bold text-slate-500 border-t border-slate-100 pt-4">
-                      <div className="flex items-center gap-4">
-                        <span className="flex items-center gap-1.5 text-slate-800 bg-slate-100 px-2 py-1 rounded-md">
-                          <Star size={14} className="text-amber-500 fill-amber-500" /> 
+                    <div className="flex items-center justify-between text-xs font-medium text-zinc-500 border-t border-white/5 pt-5 mt-auto">
+                      <div className="flex items-center gap-5">
+                        <span className="flex items-center gap-1.5 text-zinc-300">
+                          <Star size={14} className="text-zinc-500" /> 
                           {repo.stargazers_count > 999 ? (repo.stargazers_count/1000).toFixed(1)+'k' : repo.stargazers_count}
                         </span>
-                        <span className="flex items-center gap-1.5">
+                        <span className="flex items-center gap-1.5 text-zinc-400">
                           <GitFork size={14} /> {repo.forks_count}
                         </span>
                       </div>
-                      <span className="flex items-center gap-1.5">
-                        <Clock size={14} /> {formatDistanceToNow(new Date(repo.updated_at))} ago
+                      <span className="flex items-center gap-1.5 opacity-60">
+                        {formatDistanceToNow(new Date(repo.updated_at))} ago
                       </span>
                     </div>
                   </a>
                 )) : (
                   !apiError && (
-                    <div className="col-span-full text-center py-20">
-                      <div className="bg-white border border-slate-200 rounded-2xl p-10 inline-block">
-                        <Search size={40} className="mx-auto text-slate-300 mb-4" />
-                        <h3 className="text-xl font-bold text-slate-900 mb-2">No Repositories Found</h3>
-                        <p className="text-slate-500 font-medium">Try adjusting your filters or search term.</p>
+                    <div className="col-span-full text-center py-32">
+                      <div className="bg-[#121212] border border-white/5 rounded-3xl p-12 inline-flex flex-col items-center">
+                        <Search size={32} className="text-zinc-600 mb-6" />
+                        <h3 className="text-lg font-semibold text-zinc-200 mb-2 tracking-tight">No Repositories Found</h3>
+                        <p className="text-zinc-500 text-sm">Try adjusting your filters or search criteria.</p>
                       </div>
                     </div>
                   )
@@ -451,85 +464,84 @@ function App() {
         {/* VIEW 2: RESEARCH & PAPERS                 */}
         {/* ========================================= */}
         {mainView === 'research' && (
-          <div className="animate-in fade-in duration-500">
-            <div className="mb-8">
-              <h2 className="text-3xl font-extrabold text-slate-900 flex items-center gap-2">
-                <Library className="text-blue-600" size={28}/> Daily Reading
+          <div className="animate-in fade-in duration-700">
+            <div className="mb-10">
+              <h2 className="text-3xl font-semibold text-zinc-100 flex items-center gap-3 tracking-tight">
+                Research & News
               </h2>
-              <p className="text-slate-500 font-medium mt-2 text-lg">The absolute must-read AI research papers and engineering blogs updated daily.</p>
+              <p className="text-zinc-500 font-normal mt-2 text-base max-w-2xl leading-relaxed">Daily curated papers from Hugging Face and high-signal engineering discussions.</p>
             </div>
 
-            {/* Research Tabs and Filters */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-200 mb-8 gap-4">
-              <div className="flex">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-white/5 mb-10 gap-6">
+              <div className="flex gap-2">
                 <button 
                   onClick={() => setResearchTab('papers')}
-                  className={`pb-4 px-6 text-sm font-bold tracking-wide uppercase transition-all border-b-[3px] flex items-center gap-2 ${
-                    researchTab === 'papers' ? 'border-blue-600 text-blue-700 bg-blue-50/50' : 'border-transparent text-slate-500 hover:text-slate-800'
+                  className={`pb-4 px-4 text-xs font-semibold tracking-wider uppercase transition-all border-b-2 flex items-center gap-2 ${
+                    researchTab === 'papers' ? 'border-indigo-500 text-zinc-100' : 'border-transparent text-zinc-500 hover:text-zinc-300'
                   }`}
                 >
-                  <FileText size={18} /> Hugging Face Daily Papers
+                  <FileText size={16} /> Daily Papers
                 </button>
                 <button 
                   onClick={() => setResearchTab('news')}
-                  className={`pb-4 px-6 text-sm font-bold tracking-wide uppercase transition-all border-b-[3px] flex items-center gap-2 ${
-                    researchTab === 'news' ? 'border-blue-600 text-blue-700 bg-blue-50/50' : 'border-transparent text-slate-500 hover:text-slate-800'
+                  className={`pb-4 px-4 text-xs font-semibold tracking-wider uppercase transition-all border-b-2 flex items-center gap-2 ${
+                    researchTab === 'news' ? 'border-indigo-500 text-zinc-100' : 'border-transparent text-zinc-500 hover:text-zinc-300'
                   }`}
                 >
-                  <Newspaper size={18} /> Top Tech News & Blogs
+                  <Newspaper size={16} /> Tech Discussions
                 </button>
               </div>
               
-              {/* Research Sort Dropdown */}
-              <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 focus-within:ring-2 ring-blue-500/20 mb-4 sm:mb-2">
-                <TrendingUp size={16} className="text-slate-400" />
+              <div className="flex items-center gap-2 bg-black/20 border border-white/10 rounded-xl px-4 py-2 mb-4 sm:mb-2 focus-within:border-indigo-500/50 transition-colors">
+                <TrendingUp size={14} className="text-zinc-500" />
                 <select 
                   value={researchSortBy} 
                   onChange={(e) => setResearchSortBy(e.target.value)}
-                  className="bg-transparent text-sm font-bold text-slate-700 focus:outline-none cursor-pointer w-full"
+                  className="bg-transparent text-xs font-medium text-zinc-300 focus:outline-none cursor-pointer w-full appearance-none pr-4"
                 >
-                  {researchSortOptions.map(s => <option key={s.id} value={s.val}>{s.name}</option>)}
+                  {researchSortOptions.map(s => <option key={s.id} value={s.val} className="bg-zinc-900">{s.name}</option>)}
                 </select>
               </div>
             </div>
 
             {loadingResearch ? (
-              <div className="flex justify-center py-20">
-                <div className="w-10 h-10 border-4 border-slate-200 border-t-blue-600 rounded-full animate-spin"></div>
+              <div className="flex justify-center py-32">
+                <div className="w-8 h-8 border-2 border-white/10 border-t-indigo-500 rounded-full animate-spin"></div>
               </div>
             ) : (
               <>
-                {/* PAPERS LIST */}
+                {/* PAPERS */}
                 {researchTab === 'papers' && (
-                  <div className="space-y-6 max-w-4xl mx-auto">
+                  <div className="space-y-4 max-w-4xl mx-auto">
                     {papers.map((paper, idx) => (
-                      <div key={idx} className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm hover:shadow-md hover:border-blue-400 transition-all flex flex-col gap-4">
-                        <div className="flex items-start justify-between gap-4">
-                          <h3 className="text-xl font-bold text-slate-900 leading-tight">
+                      <div key={idx} className="group bg-[#121212] border border-white/5 rounded-3xl p-8 hover:border-white/10 transition-all flex flex-col gap-5 relative overflow-hidden">
+                        
+                        <div className="flex items-start justify-between gap-6">
+                          <h3 className="text-xl font-semibold text-zinc-100 leading-snug tracking-tight">
                             {paper.title}
                           </h3>
-                          <span className="flex items-center gap-1.5 bg-amber-50 border border-amber-200 text-amber-700 px-3 py-1 rounded-full text-xs font-black shrink-0 shadow-sm">
-                            <Star size={14} className="fill-amber-500 text-amber-500" /> {paper.upvotes}
+                          <span className="flex items-center gap-1.5 bg-white/5 border border-white/10 text-zinc-300 px-3 py-1.5 rounded-xl text-xs font-semibold shrink-0">
+                            <Star size={12} className="text-amber-400" /> {paper.upvotes}
                           </span>
                         </div>
                         
-                        <p className="text-sm font-semibold text-slate-500 uppercase tracking-widest">
-                          By: <span className="text-slate-700">{paper.authors}</span>
+                        <p className="text-xs font-medium text-zinc-500 tracking-wide">
+                          <span className="text-zinc-400">{paper.authors}</span>
                         </p>
                         
-                        <p className="text-slate-600 font-medium leading-relaxed bg-slate-50 p-4 rounded-xl border border-slate-100 line-clamp-3">
+                        <p className="text-zinc-400 text-sm leading-relaxed line-clamp-3">
                           {paper.summary}
                         </p>
                         
-                        <div className="flex items-center gap-4 mt-2">
-                          <a href={paper.url} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-sm font-bold bg-slate-900 text-white px-5 py-2.5 rounded-xl hover:bg-blue-600 transition-colors shadow-sm">
-                            <FileText size={16} /> View on Hugging Face <ExternalLink size={14} />
+                        <div className="flex items-center gap-4 mt-2 pt-5 border-t border-white/5">
+                          <a href={paper.url} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-xs font-semibold bg-white text-black px-5 py-2.5 rounded-xl hover:bg-zinc-200 transition-colors">
+                            <FileText size={14} /> Hugging Face
                           </a>
-                          <a href={paper.arxivUrl} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-sm font-bold bg-white text-slate-700 border border-slate-300 px-5 py-2.5 rounded-xl hover:bg-slate-50 transition-colors">
-                            Read PDF on ArXiv
+                          <a href={paper.arxivUrl} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-xs font-semibold bg-white/5 text-zinc-300 border border-white/10 px-5 py-2.5 rounded-xl hover:bg-white/10 transition-colors">
+                            ArXiv PDF
                           </a>
-                          <span className="ml-auto text-xs font-bold text-slate-400 flex items-center gap-1">
-                            <Clock size={14} /> {formatDistanceToNow(new Date(paper.date))} ago
+                          <span className="ml-auto text-xs font-medium text-zinc-600 flex items-center gap-1.5 opacity-80">
+                            <Clock size={12} /> {formatDistanceToNow(new Date(paper.date))} ago
                           </span>
                         </div>
                       </div>
@@ -537,23 +549,26 @@ function App() {
                   </div>
                 )}
 
-                {/* NEWS & BLOGS LIST */}
+                {/* NEWS */}
                 {researchTab === 'news' && (
                   <div className="space-y-4 max-w-4xl mx-auto">
                     {news.map((item, idx) => (
-                      <a key={idx} href={item.url} target="_blank" rel="noreferrer" className="group block bg-white border border-slate-200 rounded-2xl p-6 shadow-sm hover:shadow-md hover:border-blue-400 transition-all">
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className="bg-slate-100 border border-slate-200 text-slate-600 px-2 py-1 rounded-md text-[10px] font-black uppercase tracking-widest flex items-center gap-1">
-                            <Globe size={12} /> {item.domain}
+                      <a key={idx} href={item.url} target="_blank" rel="noreferrer" className="group block bg-[#121212] border border-white/5 rounded-3xl p-7 hover:border-white/10 transition-all relative overflow-hidden">
+                        <div className="flex items-center gap-3 mb-4">
+                          <span className="bg-white/5 border border-white/10 text-zinc-400 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest flex items-center gap-1.5">
+                            <Globe size={10} /> {item.domain}
+                          </span>
+                          <span className="text-xs font-medium text-zinc-600 flex items-center gap-1.5">
+                            <Clock size={12} /> {formatDistanceToNow(new Date(item.date))} ago
                           </span>
                         </div>
-                        <h3 className="text-xl font-bold text-slate-900 group-hover:text-blue-600 transition-colors mb-3 leading-tight flex items-start gap-2">
-                          {item.title} <ExternalLink size={16} className="text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity mt-1 shrink-0" />
+                        <h3 className="text-lg font-semibold text-zinc-100 group-hover:text-indigo-400 transition-colors mb-5 leading-snug tracking-tight pr-8">
+                          {item.title}
+                          <ExternalLink size={16} className="absolute right-7 top-1/2 -translate-y-1/2 text-zinc-600 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
                         </h3>
-                        <div className="flex items-center gap-4 text-xs font-bold text-slate-500">
-                          <span className="flex items-center gap-1"><Star size={14} className="text-amber-500 fill-amber-500" /> {item.points} Points</span>
-                          <span className="flex items-center gap-1"><Users size={14} className="text-blue-500" /> {item.comments} Comments</span>
-                          <span className="flex items-center gap-1"><Clock size={14} /> {formatDistanceToNow(new Date(item.date))} ago</span>
+                        <div className="flex items-center gap-6 text-xs font-medium text-zinc-500 border-t border-white/5 pt-4">
+                          <span className="flex items-center gap-2"><Star size={14} className="text-amber-500/80" /> {item.points} Points</span>
+                          <span className="flex items-center gap-2"><Users size={14} className="text-zinc-400" /> {item.comments} Comments</span>
                         </div>
                       </a>
                     ))}
