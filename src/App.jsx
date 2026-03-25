@@ -148,22 +148,43 @@ function App() {
         }
         
         if (researchTab === 'news' && news.length === 0) {
-          // Fetch Hacker News Top AI/LLM stories
-          const hnQuery = '"LLM" OR "OpenAI" OR "Anthropic" OR "AI Agents" OR "Generative AI" OR "Machine Learning"';
-          const hnRes = await fetch(`https://hn.algolia.com/api/v1/search?query=${encodeURIComponent(hnQuery)}&tags=story&hitsPerPage=30`);
-          if (hnRes.ok) {
-            const hnData = await hnRes.json();
-            const mappedNews = hnData.hits.map(item => ({
-              id: item.objectID,
-              title: item.title,
-              url: item.url || `https://news.ycombinator.com/item?id=${item.objectID}`,
-              points: item.points,
-              comments: item.num_comments,
-              date: item.created_at,
-              domain: item.url ? new URL(item.url).hostname.replace('www.', '') : 'news.ycombinator.com'
-            }));
-            setNews(mappedNews);
-          }
+          // Fetch Hacker News Top AI/LLM stories by fetching a few key terms and merging them
+          // (Algolia drops results if we use too many OR statements in a single query)
+          const terms = ['LLM', 'OpenAI', 'Anthropic', 'AI Agents'];
+          
+          const promises = terms.map(term => 
+            fetch(`https://hn.algolia.com/api/v1/search?query=${encodeURIComponent(term)}&tags=story&hitsPerPage=10`).then(res => res.json())
+          );
+          
+          const results = await Promise.all(promises);
+          
+          // Flatten and deduplicate
+          const allHits = [];
+          const seenIds = new Set();
+          
+          results.forEach(data => {
+            data.hits.forEach(item => {
+              if (!seenIds.has(item.objectID)) {
+                seenIds.add(item.objectID);
+                allHits.push(item);
+              }
+            });
+          });
+          
+          // Sort by highest points to get the top news
+          allHits.sort((a, b) => b.points - a.points);
+          
+          const mappedNews = allHits.slice(0, 30).map(item => ({
+            id: item.objectID,
+            title: item.title,
+            url: item.url || `https://news.ycombinator.com/item?id=${item.objectID}`,
+            points: item.points,
+            comments: item.num_comments,
+            date: item.created_at,
+            domain: item.url ? new URL(item.url).hostname.replace('www.', '') : 'news.ycombinator.com'
+          }));
+          
+          setNews(mappedNews);
         }
       } catch (error) {
         console.error("Failed to fetch research", error);
