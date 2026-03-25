@@ -339,11 +339,24 @@ function App() {
         return;
       }
 
-      // Truncate to save tokens (first ~6000 chars is usually enough context)
-      const truncatedReadme = readmeText.substring(0, 6000);
+      // Truncate to save tokens (first ~12000 chars is usually enough context for deep dives)
+      const truncatedReadme = readmeText.substring(0, 12000);
 
-      // 2. Call Gemini 1.5 Flash API
-      const prompt = `You are a Senior AI Engineer. Summarize this GitHub repository in 2-3 punchy, easy-to-understand sentences explaining what the tool is and exactly why an AI developer would use it. Keep it highly technical but very concise. Do not use markdown formatting like bolding or bullet points, just plain text. \n\nREADME CONTENT:\n${truncatedReadme}`;
+      // 2. Call Gemini 2.5 Flash API
+      const prompt = `You are a Senior AI Architect analyzing a GitHub repository. Read the following README and provide a comprehensive, deeply technical, and structured breakdown of the project.
+
+Your response MUST be formatted EXACTLY like this (do not use markdown headers or bolding, just plain text with these exact section prefixes):
+
+TLDR: (1-2 sentences explaining exactly what this tool is)
+
+HOW IT WORKS: (Explain the core architecture, the tech stack it uses under the hood, and how the data flows)
+
+KEY FEATURES: (List 3-4 of the most impressive or unique technical capabilities of this repo)
+
+WHY IT MATTERS: (Explain why a Senior AI Developer would choose this specific tool over alternatives or building it from scratch)
+
+README CONTENT:
+${truncatedReadme}`;
       
       const geminiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey.trim()}`, {
         method: 'POST',
@@ -666,20 +679,33 @@ function App() {
                     
                     <p className="text-slate-600 dark:text-zinc-400 text-sm line-clamp-3 mb-6 flex-grow font-normal leading-relaxed">{repo.description || "No description provided."}</p>
                     
-                    {/* AI SUMMARY BOX */}
                     {summarizing === repo.id ? (
-                      <div className="bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-100 dark:border-indigo-500/20 rounded-xl p-4 mb-6">
-                        <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 text-xs font-bold uppercase tracking-wider">
-                          <div className="w-3 h-3 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin"></div>
-                          Reading README.md...
+                      <div className="bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-100 dark:border-indigo-500/20 rounded-xl p-5 mb-6">
+                        <div className="flex items-center gap-3 text-indigo-600 dark:text-indigo-400 text-xs font-bold uppercase tracking-wider">
+                          <div className="w-4 h-4 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin"></div>
+                          Analyzing Architecture & Features...
                         </div>
                       </div>
                     ) : summaries[repo.id] ? (
-                      <div className="bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-100 dark:border-indigo-500/20 rounded-xl p-4 mb-6 text-sm text-slate-700 dark:text-zinc-300 font-medium leading-relaxed relative" onClick={(e) => e.stopPropagation()}>
-                        <span className="flex items-center gap-1.5 text-indigo-600 dark:text-indigo-400 text-xs font-bold uppercase tracking-wider mb-2">
-                          <Sparkles size={12} /> AI Summary
+                      <div className="bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-100 dark:border-indigo-500/20 rounded-xl p-6 mb-6 text-sm text-slate-700 dark:text-zinc-300 font-medium leading-relaxed relative" onClick={(e) => e.stopPropagation()}>
+                        <span className="flex items-center gap-1.5 text-indigo-600 dark:text-indigo-400 text-xs font-bold uppercase tracking-wider mb-4 border-b border-indigo-100 dark:border-indigo-500/20 pb-3">
+                          <Sparkles size={14} /> AI Architectural Breakdown
                         </span>
-                        {summaries[repo.id]}
+                        <div className="space-y-4 whitespace-pre-wrap">
+                          {summaries[repo.id].split('\n\n').map((paragraph, i) => {
+                            if (paragraph.startsWith('TLDR:')) {
+                              return <p key={i}><strong>{paragraph.replace('TLDR:', 'TLDR:')}</strong></p>;
+                            } else if (paragraph.startsWith('HOW IT WORKS:')) {
+                              return <p key={i}><strong>{paragraph.replace('HOW IT WORKS:', 'HOW IT WORKS:')}</strong></p>;
+                            } else if (paragraph.startsWith('KEY FEATURES:')) {
+                              return <p key={i}><strong>{paragraph.replace('KEY FEATURES:', 'KEY FEATURES:')}</strong></p>;
+                            } else if (paragraph.startsWith('WHY IT MATTERS:')) {
+                              return <p key={i}><strong>{paragraph.replace('WHY IT MATTERS:', 'WHY IT MATTERS:')}</strong></p>;
+                            } else {
+                              return <p key={i}>{paragraph}</p>;
+                            }
+                          })}
+                        </div>
                       </div>
                     ) : null}
                     
