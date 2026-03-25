@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Terminal, Star, GitFork, Clock, BookOpen, Code2, Search, Calendar, TrendingUp, Sparkles, AlertCircle, Copy, Check } from 'lucide-react';
+import { Terminal, Star, GitFork, Clock, BookOpen, Code2, Search, Calendar, TrendingUp, Sparkles, AlertCircle, Copy, Check, Users } from 'lucide-react';
 import { formatDistanceToNow, subMonths, subYears, format } from 'date-fns';
 
 function App() {
@@ -14,12 +14,30 @@ function App() {
   const [timeRange, setTimeRange] = useState('1-year');
   const [sortBy, setSortBy] = useState('stars');
   const [language, setLanguage] = useState('all');
+  const [author, setAuthor] = useState('all'); // New Author Filter
 
   const topics = [
     { id: 'all-ai', name: '🌍 All AI & ML', query: '"machine learning" OR "artificial intelligence" OR "generative ai"' },
     { id: 'gen-ai', name: '✨ GenAI & LLMs', query: 'llm OR "generative ai" OR gpt' },
     { id: 'agents', name: '🤖 Agents & RAG', query: 'agents OR rag OR langchain OR autogen' },
     { id: 'skills', name: '🛠️ Engineering', query: 'mlops OR "prompt engineering" OR "fine-tuning"' }
+  ];
+
+  const authors = [
+    { id: 'all', name: 'All Developers (Global)' },
+    // Top Labs
+    { id: 'org:openai', name: '🏢 OpenAI' },
+    { id: 'org:anthropic', name: '🏢 Anthropic' },
+    { id: 'org:google-deepmind', name: '🏢 Google DeepMind' },
+    { id: 'org:meta-llama', name: '🏢 Meta Llama' },
+    { id: 'org:huggingface', name: '🏢 Hugging Face' },
+    { id: 'org:mistralai', name: '🏢 Mistral AI' },
+    // Elite Builders
+    { id: 'user:karpathy', name: '🧠 Andrej Karpathy' },
+    { id: 'user:hwchase17', name: '🧠 Harrison Chase (LangChain)' },
+    { id: 'user:ggerganov', name: '🧠 Georgi Gerganov (llama.cpp)' },
+    { id: 'user:simonw', name: '🧠 Simon Willison' },
+    { id: 'user:jph00', name: '🧠 Jeremy Howard (fast.ai)' }
   ];
 
   const timeRanges = [
@@ -51,9 +69,23 @@ function App() {
       setLoading(true);
       setApiError(false);
       
-      const activeTopic = topics.find(t => t.id === topic);
+      let q = '';
+
+      // If a specific author is selected, we prioritize showing ALL their repos (they are an AI lab/dev, so it's all relevant)
+      // If "All Developers", we use the standard Topic search.
+      if (author !== 'all') {
+        q += `${author} `;
+      } else {
+        const activeTopic = topics.find(t => t.id === topic);
+        q += `${activeTopic.query} `;
+      }
+      
       let starQuery = sortBy === 'rising' ? 'stars:10..500' : 'stars:>50';
-      let q = `${activeTopic.query} ${starQuery}`;
+      // If searching a specific user, we can lower star threshold to see everything they do
+      if (author !== 'all' && sortBy !== 'rising') {
+        starQuery = 'stars:>10';
+      }
+      q += `${starQuery}`;
 
       const activeTime = timeRanges.find(t => t.id === timeRange);
       const dateStr = activeTime.getDate();
@@ -96,7 +128,7 @@ function App() {
     }, 500);
 
     return () => clearTimeout(delayDebounceFn);
-  }, [topic, timeRange, sortBy, language, searchQuery]);
+  }, [topic, timeRange, sortBy, language, author, searchQuery]);
 
   const handleCopyClone = (e, repo) => {
     e.preventDefault();
@@ -139,7 +171,7 @@ function App() {
           <h2 className="text-3xl font-extrabold text-slate-900 flex items-center gap-2">
             <Code2 className="text-blue-600" size={28}/> Repository Explorer
           </h2>
-          <p className="text-slate-500 font-medium mt-2 text-lg">Discover the industry giants and uncover hidden AI Agent gems.</p>
+          <p className="text-slate-500 font-medium mt-2 text-lg">Discover the industry giants, top AI labs, and hidden Agent gems.</p>
         </div>
 
         {apiError && (
@@ -152,15 +184,17 @@ function App() {
           </div>
         )}
 
-        <div className="bg-white border border-slate-200 rounded-2xl p-4 mb-8 shadow-sm flex flex-col lg:flex-row gap-4 justify-between items-start lg:items-center">
+        <div className="bg-white border border-slate-200 rounded-2xl p-4 mb-8 shadow-sm flex flex-col xl:flex-row gap-4 justify-between items-start xl:items-center">
           
-          <div className="flex flex-wrap gap-2">
+          {/* Topic Pills (Hidden if viewing a specific author since we want ALL their repos) */}
+          <div className={`flex flex-wrap gap-2 ${author !== 'all' ? 'opacity-50 pointer-events-none' : ''}`}>
             {topics.map(t => (
               <button
                 key={t.id}
                 onClick={() => setTopic(t.id)}
+                disabled={author !== 'all'}
                 className={`px-4 py-2 text-sm font-bold rounded-xl transition-all ${
-                  topic === t.id 
+                  topic === t.id && author === 'all'
                     ? 'bg-blue-600 text-white shadow-md' 
                     : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                 }`}
@@ -170,8 +204,22 @@ function App() {
             ))}
           </div>
 
-          <div className="flex flex-wrap gap-3 w-full lg:w-auto border-t lg:border-t-0 border-slate-100 pt-4 lg:pt-0">
+          <div className="flex flex-wrap gap-3 w-full xl:w-auto border-t xl:border-t-0 border-slate-100 pt-4 xl:pt-0">
             
+            {/* NEW: Author / Lab Filter */}
+            <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 focus-within:ring-2 ring-blue-500/20">
+              <Users size={16} className="text-slate-400" />
+              <select 
+                value={author} 
+                onChange={(e) => setAuthor(e.target.value)}
+                className={`bg-transparent text-sm font-bold focus:outline-none cursor-pointer w-full ${author !== 'all' ? 'text-blue-700' : 'text-slate-700'}`}
+              >
+                {authors.map(a => (
+                  <option key={a.id} value={a.id}>{a.name}</option>
+                ))}
+              </select>
+            </div>
+
             <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 focus-within:ring-2 ring-blue-500/20">
               <Code2 size={16} className="text-slate-400" />
               <select 
@@ -242,15 +290,19 @@ function App() {
 
                 <div className={`flex items-start justify-between mb-3 ${sortBy === 'rising' ? 'mt-3' : ''}`}>
                   <div className="flex items-center gap-3 overflow-hidden">
-                    <div className={`p-2 rounded-lg border transition-colors ${sortBy === 'rising' ? 'bg-amber-50 border-amber-100 group-hover:bg-amber-100 group-hover:border-amber-300' : 'bg-slate-50 border-slate-100 group-hover:bg-blue-50 group-hover:border-blue-200'}`}>
-                      <BookOpen size={20} className={`${sortBy === 'rising' ? 'text-amber-600' : 'text-blue-600'} shrink-0`} />
-                    </div>
-                    <h3 className={`text-xl font-bold truncate transition-colors ${sortBy === 'rising' ? 'text-slate-900 group-hover:text-amber-600' : 'text-slate-900 group-hover:text-blue-600'}`}>
-                      {repo.name}
+                    {/* If we are filtering by author, try to show the author's avatar! */}
+                    {author !== 'all' ? (
+                       <img src={repo.owner.avatar_url} alt={repo.owner.login} className="w-10 h-10 rounded-lg border border-slate-200 shadow-sm shrink-0" />
+                    ) : (
+                      <div className={`p-2 rounded-lg border transition-colors ${sortBy === 'rising' ? 'bg-amber-50 border-amber-100 group-hover:bg-amber-100 group-hover:border-amber-300' : 'bg-slate-50 border-slate-100 group-hover:bg-blue-50 group-hover:border-blue-200'}`}>
+                        <BookOpen size={20} className={`${sortBy === 'rising' ? 'text-amber-600' : 'text-blue-600'} shrink-0`} />
+                      </div>
+                    )}
+                    <h3 className={`text-lg font-bold truncate transition-colors ${sortBy === 'rising' ? 'text-slate-900 group-hover:text-amber-600' : 'text-slate-900 group-hover:text-blue-600'}`} title={repo.full_name}>
+                      {author !== 'all' ? repo.name : repo.full_name.split('/')[1]}
                     </h3>
                   </div>
                   
-                  {/* Productivity Boost: 1-Click Copy Clone */}
                   <button 
                     onClick={(e) => handleCopyClone(e, repo)}
                     className="shrink-0 p-2 bg-slate-50 hover:bg-blue-50 border border-slate-200 hover:border-blue-200 rounded-lg text-slate-400 hover:text-blue-600 transition-all shadow-sm z-20"
