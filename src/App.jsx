@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Terminal, Star, GitFork, Clock, BookOpen, Code2, Search, Calendar, TrendingUp, Sparkles, AlertCircle, Copy, Check, Users, Library, FileText, Newspaper, ExternalLink, Globe, Sun, Moon } from 'lucide-react';
+import { Terminal, Star, GitFork, Clock, BookOpen, Code2, Search, Calendar, TrendingUp, Sparkles, AlertCircle, Copy, Check, Users, Library, FileText, Newspaper, ExternalLink, Globe, Sun, Moon, X } from 'lucide-react';
 import { formatDistanceToNow, subMonths, subYears, format } from 'date-fns';
 
 function App() {
@@ -44,6 +44,28 @@ function App() {
   const [papers, setPapers] = useState([]);
   const [news, setNews] = useState([]);
   const [loadingResearch, setLoadingResearch] = useState(true);
+
+  // --- TRENDING ALERT STATE ---
+  const [trendingAlert, setTrendingAlert] = useState(null);
+  const [showAlert, setShowAlert] = useState(true);
+
+  useEffect(() => {
+    const fetchTrendingAlert = async () => {
+      try {
+        const query = '"LLM" OR "OpenAI" OR "Anthropic" OR "AI Agents"';
+        const res = await fetch(`https://hn.algolia.com/api/v1/search?query=${encodeURIComponent(query)}&tags=story&numericFilters=points>50&hitsPerPage=1`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.hits && data.hits.length > 0) {
+            setTrendingAlert(data.hits[0]);
+          }
+        }
+      } catch (error) {
+        console.error("Failed to fetch trending alert", error);
+      }
+    };
+    fetchTrendingAlert();
+  }, []);
 
   // --- CONSTANTS ---
   const topics = [
@@ -303,7 +325,37 @@ function App() {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 pt-10">
+      {/* Trending Alert Banner */}
+      {showAlert && trendingAlert && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-8 animate-in slide-in-from-top-4 duration-500">
+          <div className="bg-gradient-to-r from-blue-500/10 via-indigo-500/10 to-purple-500/10 border border-indigo-500/20 rounded-2xl p-4 flex items-start sm:items-center justify-between gap-4 relative overflow-hidden backdrop-blur-md shadow-sm dark:shadow-none">
+            <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-blue-500 to-purple-500"></div>
+            <div className="flex items-center gap-4">
+              <div className="bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 p-2 rounded-xl shrink-0 shadow-sm dark:shadow-none hidden sm:block">
+                <Sparkles size={18} className="text-indigo-500 dark:text-indigo-400" />
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-[10px] font-extrabold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest bg-indigo-500/10 px-2 py-0.5 rounded-md">Trending Now</span>
+                  <span className="text-xs font-semibold text-slate-500 dark:text-zinc-500 flex items-center gap-1"><Star size={10} className="text-amber-500"/> {trendingAlert.points} upvotes</span>
+                </div>
+                <a href={trendingAlert.url || `https://news.ycombinator.com/item?id=${trendingAlert.objectID}`} target="_blank" rel="noreferrer" className="text-sm sm:text-base font-bold text-slate-900 dark:text-zinc-100 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors line-clamp-1 sm:line-clamp-none">
+                  {trendingAlert.title}
+                </a>
+              </div>
+            </div>
+            <button 
+              onClick={() => setShowAlert(false)} 
+              className="shrink-0 p-1.5 bg-white/50 dark:bg-black/20 hover:bg-white dark:hover:bg-white/10 border border-slate-200/50 dark:border-white/5 rounded-lg text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-white transition-all shadow-sm dark:shadow-none"
+              title="Dismiss Alert"
+            >
+              <X size={14} />
+            </button>
+          </div>
+        </div>
+      )}
+
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 pt-8">
         
         {/* ========================================= */}
         {/* VIEW 1: REPOSITORY EXPLORER               */}
