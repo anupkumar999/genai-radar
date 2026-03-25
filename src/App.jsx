@@ -1,74 +1,79 @@
 import { useState, useEffect } from 'react';
-import { Terminal, Star, GitFork, Clock, BookOpen, Code2, Search, Calendar, TrendingUp, Sparkles } from 'lucide-react';
+import { Terminal, Star, GitFork, Clock, BookOpen, Code2, Search, Calendar, TrendingUp, Sparkles, AlertCircle } from 'lucide-react';
 import { formatDistanceToNow, subMonths, subYears, format } from 'date-fns';
 
 function App() {
   const [repos, setRepos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [apiError, setApiError] = useState(false);
 
   // --- FILTERS ---
   const [topic, setTopic] = useState('agents');
-  const [timeRange, setTimeRange] = useState('1-month');
+  const [timeRange, setTimeRange] = useState('1-year'); // Default to 1-year to ensure results
   const [sortBy, setSortBy] = useState('stars');
 
   const topics = [
     { id: 'all-ai', name: '🌍 All AI & ML', query: 'topic:machine-learning OR topic:artificial-intelligence OR topic:generative-ai' },
     { id: 'gen-ai', name: '✨ GenAI & LLMs', query: 'topic:llm OR topic:generative-ai OR topic:gpt' },
-    { id: 'agents', name: '🤖 Agents & RAG', query: 'topic:ai-agents OR topic:rag OR topic:langchain OR topic:autogen' },
+    { id: 'agents', name: '🤖 Agents & RAG', query: 'topic:agents OR topic:rag OR topic:langchain OR topic:autogen' },
     { id: 'skills', name: '🛠️ Engineering', query: 'topic:mlops OR topic:prompt-engineering OR topic:fine-tuning' }
   ];
 
   const timeRanges = [
-    { id: '1-month', name: 'Past 1 Month', getDate: () => format(subMonths(new Date(), 1), 'yyyy-MM-dd') },
-    { id: '2-months', name: 'Past 2 Months', getDate: () => format(subMonths(new Date(), 2), 'yyyy-MM-dd') },
-    { id: '1-year', name: 'Past 1 Year', getDate: () => format(subYears(new Date(), 1), 'yyyy-MM-dd') },
-    { id: '2-years', name: 'Past 2 Years', getDate: () => format(subYears(new Date(), 2), 'yyyy-MM-dd') },
+    { id: '1-month', name: 'Updated Past Month', getDate: () => format(subMonths(new Date(), 1), 'yyyy-MM-dd') },
+    { id: '6-months', name: 'Updated Past 6 Months', getDate: () => format(subMonths(new Date(), 6), 'yyyy-MM-dd') },
+    { id: '1-year', name: 'Updated Past Year', getDate: () => format(subYears(new Date(), 1), 'yyyy-MM-dd') },
     { id: 'all-time', name: 'All Time', getDate: () => null }
   ];
 
   const sortOptions = [
     { id: 'stars', name: 'Highest Rated (Famous)', val: 'stars' },
-    { id: 'updated', name: 'Recently Updated (Active)', val: 'updated' },
-    { id: 'rising', name: 'Rising Gems (Trending)', val: 'help-wanted-issues' } // Using help-wanted/good-first-issues as a proxy for active community growth/new gems
+    { id: 'updated', name: 'Recently Active', val: 'updated' },
+    { id: 'rising', name: 'Rising Gems (New)', val: 'updated' } 
   ];
 
   // --- FETCH LOGIC ---
   useEffect(() => {
     const fetchRepos = async () => {
       setLoading(true);
+      setApiError(false);
       
       const activeTopic = topics.find(t => t.id === topic);
       
-      // If looking for Rising Gems, lower the star threshold to find hidden tools.
-      // If looking for Famous, keep it high.
-      const starThreshold = sortBy === 'rising' ? '10..1000' : '>50';
-      let q = `${activeTopic.query} stars:${starThreshold}`;
+      // Rising gems look for newer repos with fewer stars. Famous looks for high stars.
+      let starQuery = sortBy === 'rising' ? 'stars:10..500' : 'stars:>50';
+      let q = `${activeTopic.query} ${starQuery}`;
 
       const activeTime = timeRanges.find(t => t.id === timeRange);
       const dateStr = activeTime.getDate();
+      
       if (dateStr) {
-        // If sorting by updated, look for recently pushed. If sorting by stars, look for recently created to find new giants.
-        const dateQualifier = sortBy === 'stars' ? 'created' : 'pushed';
-        q += ` ${dateQualifier}:>${dateStr}`;
+        // If "Rising Gems", we want repos CREATED recently. Otherwise, just PUSHED (updated) recently.
+        const dateType = sortBy === 'rising' ? 'created' : 'pushed';
+        q += ` ${dateType}:>${dateStr}`;
       }
 
       if (searchQuery.trim().length > 0) {
         q += ` ${searchQuery} in:name,description`;
       }
 
-      // GitHub API Sort mapping
-      let apiSort = sortBy;
-      if (sortBy === 'rising') apiSort = 'updated'; // Sort gems by recent activity
-
       try {
-        const response = await fetch(`https://api.github.com/search/repositories?q=${encodeURIComponent(q)}&sort=${apiSort}&order=desc&per_page=30`);
-        if (response.ok) {
+        // console.log("Fetching query:", q); // Helpful for debugging
+        const response = await fetch(`https://api.github.com/search/repositories?q=${encodeURIComponent(q)}&sort=${sortBy === 'rising' ? 'stars' : sortBy}&order=desc&per_page=30`);
+        
+        if (response.status === 403) {
+          setApiError(true);
+          setRepos([]);
+        } else if (response.ok) {
           const data = await response.json();
           setRepos(data.items || []);
+        } else {
+           setRepos([]);
         }
       } catch (error) {
         console.error("Failed to fetch repos", error);
+        setRepos([]);
       } finally {
         setLoading(false);
       }
@@ -116,6 +121,16 @@ function App() {
           </h2>
           <p className="text-slate-500 font-medium mt-2 text-lg">Discover the industry giants and uncover hidden AI Agent gems.</p>
         </div>
+
+        {apiError && (
+          <div className="mb-6 bg-orange-50 border border-orange-200 text-orange-800 p-4 rounded-xl flex items-start gap-3">
+            <AlertCircle className="shrink-0 mt-0.5 text-orange-600" size={20}/>
+            <div>
+              <h4 className="font-bold">GitHub API Rate Limit Exceeded</h4>
+              <p className="text-sm font-medium opacity-90">GitHub limits anonymous searches to 10 per minute. Please wait 60 seconds before changing filters again.</p>
+            </div>
+          </div>
+        )}
 
         <div className="bg-white border border-slate-200 rounded-2xl p-4 mb-8 shadow-sm flex flex-col lg:flex-row gap-4 justify-between items-start lg:items-center">
           
@@ -228,13 +243,15 @@ function App() {
                 </div>
               </a>
             )) : (
-              <div className="col-span-full text-center py-20">
-                <div className="bg-white border border-slate-200 rounded-2xl p-10 inline-block">
-                  <Search size={40} className="mx-auto text-slate-300 mb-4" />
-                  <h3 className="text-xl font-bold text-slate-900 mb-2">No Repositories Found</h3>
-                  <p className="text-slate-500 font-medium">Try adjusting your filters or search term.</p>
+              !apiError && (
+                <div className="col-span-full text-center py-20">
+                  <div className="bg-white border border-slate-200 rounded-2xl p-10 inline-block">
+                    <Search size={40} className="mx-auto text-slate-300 mb-4" />
+                    <h3 className="text-xl font-bold text-slate-900 mb-2">No Repositories Found</h3>
+                    <p className="text-slate-500 font-medium">Try adjusting your filters or search term.</p>
+                  </div>
                 </div>
-              </div>
+              )
             )}
           </div>
         )}
