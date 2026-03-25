@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Terminal, Star, GitFork, Clock, BookOpen, Code2, Search, Calendar, TrendingUp, Sparkles, AlertCircle, Copy, Check, Users, Library, FileText, Newspaper, ExternalLink, Globe, Sun, Moon, X } from 'lucide-react';
+import { Terminal, Star, GitFork, Clock, BookOpen, Code2, Search, Calendar, TrendingUp, Sparkles, AlertCircle, Copy, Check, Users, Library, FileText, Newspaper, ExternalLink, Globe, Sun, Moon, X, Activity } from 'lucide-react';
 import { formatDistanceToNow, subMonths, subYears, format } from 'date-fns';
 
 function App() {
@@ -43,6 +43,7 @@ function App() {
   const [researchSortBy, setResearchSortBy] = useState('date'); 
   const [papers, setPapers] = useState([]);
   const [news, setNews] = useState([]);
+  const [liveNews, setLiveNews] = useState([]);
   const [loadingResearch, setLoadingResearch] = useState(true);
 
   // --- TRENDING ALERT STATE ---
@@ -173,6 +174,7 @@ function App() {
   useEffect(() => {
     setPapers([]);
     setNews([]);
+    setLiveNews([]);
   }, [researchSortBy, researchTab]);
 
   // --- FETCH RESEARCH ---
@@ -247,6 +249,42 @@ function App() {
           }));
           
           setNews(mappedNews);
+        }
+
+        if (researchTab === 'live' && liveNews.length === 0) {
+          const terms = ['LLM', 'OpenAI', 'Anthropic', 'AI Agents'];
+          const promises = terms.map(term => 
+            fetch(`https://hn.algolia.com/api/v1/search_by_date?query=${encodeURIComponent(term)}&tags=story&hitsPerPage=10`).then(res => res.json())
+          );
+          
+          const results = await Promise.all(promises);
+          const allHits = [];
+          const seenIds = new Set();
+          
+          results.forEach(data => {
+            if (data && data.hits) {
+              data.hits.forEach(item => {
+                if (!seenIds.has(item.objectID)) {
+                  seenIds.add(item.objectID);
+                  allHits.push(item);
+                }
+              });
+            }
+          });
+          
+          allHits.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+          
+          const mappedLive = allHits.slice(0, 30).map(item => ({
+            id: item.objectID,
+            title: item.title,
+            url: item.url || `https://news.ycombinator.com/item?id=${item.objectID}`,
+            points: item.points,
+            comments: item.num_comments,
+            date: item.created_at,
+            domain: item.url ? new URL(item.url).hostname.replace('www.', '') : 'news.ycombinator.com'
+          }));
+          
+          setLiveNews(mappedLive);
         }
       } catch (error) {
         console.error("Failed to fetch research", error);
@@ -556,7 +594,7 @@ function App() {
             </div>
 
             <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-200 dark:border-white/5 mb-10 gap-6">
-              <div className="flex gap-2">
+              <div className="flex gap-2 flex-wrap">
                 <button 
                   onClick={() => setResearchTab('papers')}
                   className={`pb-4 px-4 text-xs font-semibold tracking-wider uppercase transition-all border-b-2 flex items-center gap-2 ${
@@ -572,6 +610,14 @@ function App() {
                   }`}
                 >
                   <Newspaper size={16} /> Tech Discussions
+                </button>
+                <button 
+                  onClick={() => setResearchTab('live')}
+                  className={`pb-4 px-4 text-xs font-semibold tracking-wider uppercase transition-all border-b-2 flex items-center gap-2 ${
+                    researchTab === 'live' ? 'border-blue-600 dark:border-indigo-500 text-blue-700 dark:text-zinc-100' : 'border-transparent text-slate-500 dark:text-zinc-500 hover:text-slate-800 dark:hover:text-zinc-300'
+                  }`}
+                >
+                  <Activity size={16} className={researchTab === 'live' ? 'animate-pulse text-red-500' : ''} /> Live Feed
                 </button>
               </div>
               
@@ -653,6 +699,31 @@ function App() {
                           <span className="flex items-center gap-2"><Star size={14} className="text-amber-500/80" /> {item.points} Points</span>
                           <span className="flex items-center gap-2"><Users size={14} className="text-slate-500 dark:text-zinc-400" /> {item.comments} Comments</span>
                         </div>
+                      </a>
+                    ))}
+                  </div>
+                )}
+
+                {/* LIVE FEED */}
+                {researchTab === 'live' && (
+                  <div className="space-y-4 max-w-4xl mx-auto">
+                    {liveNews.map((item, idx) => (
+                      <a key={idx} href={item.url} target="_blank" rel="noreferrer" className="group block bg-white dark:bg-[#121212] border border-slate-200 dark:border-white/5 rounded-3xl p-7 shadow-sm dark:shadow-none hover:border-blue-300 dark:hover:border-white/10 transition-all relative overflow-hidden">
+                        <div className="flex items-center gap-3 mb-4">
+                          <span className="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 text-red-600 dark:text-red-400 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest flex items-center gap-1.5">
+                            <Activity size={10} className="animate-pulse" /> Just In
+                          </span>
+                          <span className="bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-zinc-400 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest flex items-center gap-1.5">
+                            <Globe size={10} /> {item.domain}
+                          </span>
+                          <span className="text-xs font-medium text-slate-500 dark:text-zinc-600 flex items-center gap-1.5">
+                            <Clock size={12} /> {formatDistanceToNow(new Date(item.date))} ago
+                          </span>
+                        </div>
+                        <h3 className="text-lg font-semibold text-slate-900 dark:text-zinc-100 group-hover:text-blue-600 dark:group-hover:text-indigo-400 transition-colors mb-5 leading-snug tracking-tight pr-8">
+                          {item.title}
+                          <ExternalLink size={16} className="absolute right-7 top-1/2 -translate-y-1/2 text-slate-400 dark:text-zinc-600 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+                        </h3>
                       </a>
                     ))}
                   </div>
