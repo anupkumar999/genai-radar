@@ -17,8 +17,8 @@ function App() {
   // We must search for the raw keywords in the repository name/description/README.
   const topics = [
     { id: 'all-ai', name: '🌍 All AI & ML', query: '"machine learning" OR "artificial intelligence" OR "generative ai"' },
-    { id: 'gen-ai', name: '✨ GenAI & LLMs', query: 'llm OR "generative ai" OR gpt' },
-    { id: 'agents', name: '🤖 Agents & RAG', query: 'agents OR rag OR langchain OR autogen' },
+    { id: 'gen-ai', name: '✨ GenAI & LLMs', query: 'llm OR gpt OR claude OR gemini' },
+    { id: 'agents', name: '🤖 Agents & RAG', query: 'agents OR rag OR langchain OR crewai' },
     { id: 'skills', name: '🛠️ Engineering', query: 'mlops OR "prompt engineering" OR "fine-tuning"' }
   ];
 
