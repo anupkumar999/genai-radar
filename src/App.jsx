@@ -345,7 +345,7 @@ function App() {
       // 2. Call Gemini 1.5 Flash API
       const prompt = `You are a Senior AI Engineer. Summarize this GitHub repository in 2-3 punchy, easy-to-understand sentences explaining what the tool is and exactly why an AI developer would use it. Keep it highly technical but very concise. Do not use markdown formatting like bolding or bullet points, just plain text. \n\nREADME CONTENT:\n${truncatedReadme}`;
       
-      const geminiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey.trim()}`, {
+      const geminiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${geminiKey.trim()}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
