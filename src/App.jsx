@@ -622,8 +622,9 @@ function App() {
             ) : (
               <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
                 {repos.length > 0 ? repos.map((repo) => (
-                  <a key={repo.id} href={repo.html_url} target="_blank" rel="noreferrer" 
-                    className={`group bg-white dark:bg-[#121212] border ${sortBy === 'rising' ? 'border-amber-300 dark:border-amber-500/30 hover:border-amber-500 dark:hover:border-amber-500/60 shadow-md dark:shadow-[0_0_15px_rgba(245,158,11,0.05)]' : 'border-slate-200 dark:border-white/5 hover:border-blue-300 dark:hover:border-white/20 shadow-sm hover:shadow-md'} rounded-3xl p-7 transition-all duration-300 flex flex-col h-full relative`}>
+                  <div key={repo.id} 
+                    onClick={() => window.open(repo.html_url, '_blank')}
+                    className={`cursor-pointer group bg-white dark:bg-[#121212] border ${sortBy === 'rising' ? 'border-amber-300 dark:border-amber-500/30 hover:border-amber-500 dark:hover:border-amber-500/60 shadow-md dark:shadow-[0_0_15px_rgba(245,158,11,0.05)]' : 'border-slate-200 dark:border-white/5 hover:border-blue-300 dark:hover:border-white/20 shadow-sm hover:shadow-md'} rounded-3xl p-7 transition-all duration-300 flex flex-col h-full relative`}>
                     
                     {sortBy === 'rising' && (
                       <div className="absolute top-0 right-0 bg-amber-100 dark:bg-amber-500/10 text-amber-700 dark:text-amber-500 text-[9px] font-bold px-3 py-1.5 rounded-bl-2xl border-b border-l border-amber-200 dark:border-amber-500/20 uppercase tracking-widest backdrop-blur-md z-10">
@@ -674,7 +675,7 @@ function App() {
                         </div>
                       </div>
                     ) : summaries[repo.id] ? (
-                      <div className="bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-100 dark:border-indigo-500/20 rounded-xl p-4 mb-6 text-sm text-slate-700 dark:text-zinc-300 font-medium leading-relaxed relative">
+                      <div className="bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-100 dark:border-indigo-500/20 rounded-xl p-4 mb-6 text-sm text-slate-700 dark:text-zinc-300 font-medium leading-relaxed relative" onClick={(e) => e.stopPropagation()}>
                         <span className="flex items-center gap-1.5 text-indigo-600 dark:text-indigo-400 text-xs font-bold uppercase tracking-wider mb-2">
                           <Sparkles size={12} /> AI Summary
                         </span>
@@ -709,7 +710,7 @@ function App() {
                         {formatDistanceToNow(new Date(repo.updated_at))} ago
                       </span>
                     </div>
-                  </a>
+                  </div>
                 )) : (
                   !apiError && (
                     <div className="col-span-full text-center py-32">
