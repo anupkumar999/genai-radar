@@ -148,12 +148,10 @@ function App() {
         }
         
         if (researchTab === 'news' && news.length === 0) {
-          // Fetch Hacker News Top AI/LLM stories by fetching a few key terms and merging them
-          // (Algolia drops results if we use too many OR statements in a single query)
           const terms = ['LLM', 'OpenAI', 'Anthropic', 'AI Agents'];
           
           const promises = terms.map(term => 
-            fetch(`https://hn.algolia.com/api/v1/search_by_date?query=${encodeURIComponent(term)}&tags=story&hitsPerPage=10`).then(res => res.json())
+            fetch(`https://hn.algolia.com/api/v1/search_by_date?query=${encodeURIComponent(term)}&tags=story&numericFilters=points>10&hitsPerPage=15`).then(res => res.json())
           );
           
           const results = await Promise.all(promises);
@@ -171,8 +169,8 @@ function App() {
             });
           });
           
-          // Sort by highest points to get the top news
-          allHits.sort((a, b) => b.points - a.points);
+          // Sort strictly by Date (Newest to Oldest)
+          allHits.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
           
           const mappedNews = allHits.slice(0, 30).map(item => ({
             id: item.objectID,
