@@ -314,7 +314,7 @@ function App() {
               <Terminal size={22} className="text-white dark:text-indigo-400" />
             </div>
             <h1 className="text-xl font-bold text-slate-900 dark:text-zinc-100 tracking-tight">
-              GenAI<span className="text-blue-600 dark:text-indigo-500 font-light">_Radar</span>
+              AI<span className="text-blue-600 dark:text-indigo-500 font-light">_Nexus</span>
             </h1>
           </div>
 
