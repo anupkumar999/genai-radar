@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Terminal, Star, GitFork, Clock, BookOpen, Newspaper, ExternalLink, MessageSquare, Code2, Search, Sparkles, Brain, Cpu, Globe2, BookMarked, Wrench } from 'lucide-react';
+import { Terminal, Star, GitFork, Clock, BookOpen, Newspaper, ExternalLink, MessageSquare, Code2, Search, Sparkles, Brain, Cpu, Globe2, BookMarked, Wrench, Users } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
 function App() {
@@ -12,7 +12,6 @@ function App() {
   const [news, setNews] = useState([]);
   const [loadingNews, setLoadingNews] = useState(true);
 
-  // Simplified and broadened GitHub queries to ensure results always return
   const categories = [
     { id: 'global', icon: <Globe2 size={16} />, label: '🌍 Global AI Trends', ghQuery: 'topic:machine-learning stars:>500', hnQuery: '"Artificial Intelligence" OR "Machine Learning" OR AGI OR "GenAI"' },
     { id: 'openai', icon: <Sparkles size={16} />, label: '⚡ ChatGPT & OpenAI', ghQuery: 'topic:openai OR topic:chatgpt stars:>50', hnQuery: '"OpenAI" OR "ChatGPT" OR "GPT-4" OR "Sora"' },
@@ -24,11 +23,75 @@ function App() {
 
   const [activeCategory, setActiveCategory] = useState(categories[0]);
 
-  // Fetch GitHub Repos
+  // People Data
+  const peopleGroups = [
+    {
+      title: "🧠 Core AI Researchers",
+      description: "Pushing the boundaries of AI itself. Follow them for where AI is going next.",
+      people: [
+        { name: "Andrej Karpathy", role: "AI Researcher & Educator", url: "https://twitter.com/karpathy" },
+        { name: "Yann LeCun", role: "Chief AI Scientist at Meta", url: "https://twitter.com/ylecun" },
+        { name: "Geoffrey Hinton", role: "Godfather of AI", url: "https://twitter.com/geoffreyhinton" },
+        { name: "Demis Hassabis", role: "CEO of Google DeepMind", url: "https://twitter.com/demishassabis" },
+        { name: "Ilya Sutskever", role: "Co-founder OpenAI / SSI", url: "https://twitter.com/ilyasut" },
+        { name: "Fei-Fei Li", role: "Stanford AI Lab", url: "https://twitter.com/drfeifei" },
+        { name: "Dario Amodei", role: "CEO of Anthropic", url: "https://twitter.com/DarioAmodei" },
+        { name: "Aidan Gomez", role: "CEO of Cohere", url: "https://twitter.com/aidangomez" },
+        { name: "Noam Shazeer", role: "Co-author of Attention Is All You Need", url: "https://twitter.com/NoamShazeer" }
+      ]
+    },
+    {
+      title: "🛠️ Builders & Engineers",
+      description: "Practical, code-first thinkers. Follow them for how to actually build AI systems.",
+      people: [
+        { name: "Jeremy Howard", role: "Founder fast.ai", url: "https://twitter.com/jeremyphoward" },
+        { name: "Sebastian Raschka", role: "AI Educator & Engineer", url: "https://twitter.com/rasbt" },
+        { name: "Harrison Chase", role: "Creator of LangChain", url: "https://twitter.com/hwchase17" },
+        { name: "Chip Huyen", role: "MLOps Expert", url: "https://twitter.com/chipro" },
+        { name: "Eugene Yan", role: "Applied Scientist @ Amazon", url: "https://twitter.com/eugeneyan" },
+        { name: "Shreya Shankar", role: "ML Engineer", url: "https://twitter.com/shreya_rofl" }
+      ]
+    },
+    {
+      title: "🚀 Founders & Product Thinkers",
+      description: "Turning AI into real-world impact. Follow them for what’s being built & shipped.",
+      people: [
+        { name: "Sam Altman", role: "CEO of OpenAI", url: "https://twitter.com/sama" },
+        { name: "Elon Musk", role: "xAI / Tesla", url: "https://twitter.com/elonmusk" },
+        { name: "Satya Nadella", role: "CEO of Microsoft", url: "https://twitter.com/satyanadella" },
+        { name: "Sundar Pichai", role: "CEO of Google", url: "https://twitter.com/sundarpichai" },
+        { name: "Aravind Srinivas", role: "CEO of Perplexity", url: "https://twitter.com/AravSrinivas" },
+        { name: "Emad Mostaque", role: "Founder Stability AI", url: "https://twitter.com/EMostaque" }
+      ]
+    },
+    {
+      title: "🧩 AI Educators",
+      description: "Best for understanding concepts clearly without confusion.",
+      people: [
+        { name: "Grant Sanderson", role: "3Blue1Brown", url: "https://twitter.com/3blue1brown" },
+        { name: "Yannic Kilcher", role: "AI Paper Breakdown", url: "https://twitter.com/ykilcher" },
+        { name: "Krish Naik", role: "Data Science Educator", url: "https://twitter.com/krishnaik06" },
+        { name: "Harrison Kinsley", role: "Sentdex", url: "https://twitter.com/Sentdex" },
+        { name: "Andrew Ng", role: "DeepLearning.AI", url: "https://twitter.com/AndrewYNg" }
+      ]
+    },
+    {
+      title: "⚡ Indie Hackers & Creators",
+      description: "Underrated but super valuable. Follow for shipping fast with AI.",
+      people: [
+        { name: "Pieter Levels", role: "Indie Maker", url: "https://twitter.com/levelsio" },
+        { name: "Marc Lou", role: "Shipper", url: "https://twitter.com/marc_louvion" },
+        { name: "Sahil Lavingia", role: "Gumroad Founder", url: "https://twitter.com/shl" },
+        { name: "Logan Kilpatrick", role: "Google AI / ex-OpenAI", url: "https://twitter.com/OfficialLoganK" },
+        { name: "Nikita Bier", role: "Consumer App Expert", url: "https://twitter.com/nikitabier" }
+      ]
+    }
+  ];
+
   useEffect(() => {
     const fetchRepos = async () => {
       setLoadingRepos(true);
-      setRepos([]); // Clear previous repos to show loading state
+      setRepos([]); 
       try {
         const response = await fetch(`https://api.github.com/search/repositories?q=${encodeURIComponent(activeCategory.ghQuery)}&sort=updated&order=desc&per_page=30`);
         const data = await response.json();
@@ -42,11 +105,10 @@ function App() {
     if (activeTab === 'repos') fetchRepos();
   }, [activeCategory, activeTab]);
 
-  // Fetch News
   useEffect(() => {
     const fetchNewsFeed = async () => {
       setLoadingNews(true);
-      setNews([]); // Clear previous news
+      setNews([]); 
       try {
         const hnRes = await fetch(`https://hn.algolia.com/api/v1/search?query=${encodeURIComponent(activeCategory.hnQuery)}&tags=story&hitsPerPage=20`);
         const hnData = await hnRes.json();
@@ -118,7 +180,7 @@ function App() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
             <input 
               type="text" 
-              placeholder={`Search ${activeTab === 'repos' ? 'repositories' : 'news'}...`}
+              placeholder="Search feed..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full bg-slate-100 border-none rounded-full py-2 pl-10 pr-4 text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all placeholder:text-slate-500"
@@ -126,10 +188,10 @@ function App() {
           </div>
         </div>
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 flex gap-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 flex gap-8 overflow-x-auto no-scrollbar">
           <button 
             onClick={() => setActiveTab('repos')}
-            className={`pb-4 text-sm font-bold tracking-wide uppercase transition-all border-b-[3px] flex items-center gap-2 ${
+            className={`pb-4 text-sm font-bold tracking-wide uppercase transition-all border-b-[3px] flex items-center gap-2 whitespace-nowrap ${
               activeTab === 'repos' ? 'border-blue-600 text-blue-700' : 'border-transparent text-slate-500 hover:text-slate-800'
             }`}
           >
@@ -137,11 +199,19 @@ function App() {
           </button>
           <button 
             onClick={() => setActiveTab('news')}
-            className={`pb-4 text-sm font-bold tracking-wide uppercase transition-all border-b-[3px] flex items-center gap-2 ${
+            className={`pb-4 text-sm font-bold tracking-wide uppercase transition-all border-b-[3px] flex items-center gap-2 whitespace-nowrap ${
               activeTab === 'news' ? 'border-blue-600 text-blue-700' : 'border-transparent text-slate-500 hover:text-slate-800'
             }`}
           >
             <Newspaper size={18} /> News & Intelligence
+          </button>
+          <button 
+            onClick={() => setActiveTab('people')}
+            className={`pb-4 text-sm font-bold tracking-wide uppercase transition-all border-b-[3px] flex items-center gap-2 whitespace-nowrap ${
+              activeTab === 'people' ? 'border-blue-600 text-blue-700' : 'border-transparent text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            <Users size={18} /> Top 30 People
           </button>
         </div>
       </header>
@@ -161,34 +231,39 @@ function App() {
 
         <div className="flex flex-col lg:flex-row gap-8 items-start">
           
-          <aside className="w-full lg:w-64 shrink-0 overflow-x-auto no-scrollbar pb-4 lg:pb-0 lg:sticky lg:top-32">
-            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 px-2 hidden lg:block">Intelligence Radar</h3>
-            <div className="flex lg:flex-col gap-2 min-w-max lg:min-w-0">
-              {categories.map((cat) => (
-                <button
-                  key={cat.id}
-                  onClick={() => setActiveCategory(cat)}
-                  className={`px-4 py-3 text-sm font-semibold rounded-xl transition-all flex items-center gap-3 w-full text-left ${
-                    activeCategory.id === cat.id
-                      ? 'bg-blue-50 text-blue-700 shadow-[inset_0_0_0_1px_rgba(37,99,235,0.2)]'
-                      : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200 shadow-sm hover:shadow'
-                  }`}
-                >
-                  <span className={activeCategory.id === cat.id ? 'text-blue-600' : 'text-slate-500'}>
-                    {cat.label}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </aside>
+          {/* Hide sidebar if we are on the 'People' tab since it's a global list */}
+          {activeTab !== 'people' && (
+            <aside className="w-full lg:w-64 shrink-0 overflow-x-auto no-scrollbar pb-4 lg:pb-0 lg:sticky lg:top-32">
+              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 px-2 hidden lg:block">Intelligence Radar</h3>
+              <div className="flex lg:flex-col gap-2 min-w-max lg:min-w-0">
+                {categories.map((cat) => (
+                  <button
+                    key={cat.id}
+                    onClick={() => setActiveCategory(cat)}
+                    className={`px-4 py-3 text-sm font-semibold rounded-xl transition-all flex items-center gap-3 w-full text-left ${
+                      activeCategory.id === cat.id
+                        ? 'bg-blue-50 text-blue-700 shadow-[inset_0_0_0_1px_rgba(37,99,235,0.2)]'
+                        : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200 shadow-sm hover:shadow'
+                    }`}
+                  >
+                    <span className={activeCategory.id === cat.id ? 'text-blue-600' : 'text-slate-500'}>
+                      {cat.label}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </aside>
+          )}
 
           <div className="flex-1 w-full min-w-0">
-            <div className="mb-6">
-              <h2 className="text-2xl font-extrabold text-slate-900 flex items-center gap-2">
-                {activeCategory.label.replace(/[\u1000-\uFFFF]+/g, '').trim()} Feed
-              </h2>
-              <p className="text-slate-500 font-medium">Real-time pulse of {activeTab === 'repos' ? 'repositories' : 'discussions'} updated today.</p>
-            </div>
+            {activeTab !== 'people' && (
+              <div className="mb-6">
+                <h2 className="text-2xl font-extrabold text-slate-900 flex items-center gap-2">
+                  {activeCategory.label.replace(/[\u1000-\uFFFF]+/g, '').trim()} Feed
+                </h2>
+                <p className="text-slate-500 font-medium">Real-time pulse of {activeTab === 'repos' ? 'repositories' : 'discussions'} updated today.</p>
+              </div>
+            )}
 
             {(loadingRepos && activeTab === 'repos') || (loadingNews && activeTab === 'news') ? (
               <div className="flex justify-center py-20">
@@ -196,6 +271,7 @@ function App() {
               </div>
             ) : (
               <>
+                {/* TAB 1: REPOS */}
                 {activeTab === 'repos' && (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {filteredRepos.length > 0 ? filteredRepos.map((repo) => (
@@ -224,11 +300,12 @@ function App() {
                         </div>
                       </a>
                     )) : (
-                      <div className="col-span-2 text-center py-12 text-slate-500 font-medium">No repositories found. GitHub API rate limits might be active, or try another category.</div>
+                      <div className="col-span-2 text-center py-12 text-slate-500 font-medium">No repositories found.</div>
                     )}
                   </div>
                 )}
 
+                {/* TAB 2: NEWS */}
                 {activeTab === 'news' && (
                   <div className="space-y-3">
                     {filteredNews.length > 0 ? filteredNews.map((item, idx) => (
@@ -259,8 +336,54 @@ function App() {
                         </div>
                       </a>
                     )) : (
-                      <div className="text-center py-12 text-slate-500 font-medium">No news found for "{searchQuery}".</div>
+                      <div className="text-center py-12 text-slate-500 font-medium">No news found.</div>
                     )}
+                  </div>
+                )}
+
+                {/* TAB 3: TOP 30 PEOPLE */}
+                {activeTab === 'people' && (
+                  <div className="max-w-4xl mx-auto">
+                    <div className="mb-10 text-center">
+                      <h2 className="text-3xl font-extrabold text-slate-900 mb-4">The Top 30 High-Signal AI Leaders</h2>
+                      <p className="text-slate-600 text-lg max-w-2xl mx-auto">
+                        Don't follow the hype. Follow the signal. Here are the 30 researchers, builders, and founders actively shaping the AI world.
+                      </p>
+                    </div>
+
+                    <div className="space-y-12">
+                      {peopleGroups.map((group, gIdx) => (
+                        <div key={gIdx} className="bg-white border border-slate-200 rounded-3xl p-8 shadow-sm">
+                          <h3 className="text-2xl font-bold text-slate-900 mb-2">{group.title}</h3>
+                          <p className="text-slate-500 mb-8 font-medium">{group.description}</p>
+                          
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {group.people.map((person, pIdx) => (
+                              <a 
+                                key={pIdx} 
+                                href={person.url} 
+                                target="_blank" 
+                                rel="noreferrer"
+                                className="group p-4 bg-slate-50 border border-slate-200 rounded-xl hover:bg-blue-50 hover:border-blue-200 hover:-translate-y-1 transition-all"
+                              >
+                                <div className="flex items-center justify-between mb-1">
+                                  <h4 className="font-bold text-slate-900 group-hover:text-blue-700 transition-colors">{person.name}</h4>
+                                  <ExternalLink size={14} className="text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                </div>
+                                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">{person.role}</p>
+                              </a>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="mt-12 bg-blue-50 border border-blue-200 rounded-3xl p-8 text-center max-w-2xl mx-auto">
+                      <h4 className="text-lg font-bold text-blue-900 mb-2">💡 Quick Follow Strategy</h4>
+                      <p className="text-blue-800/80 font-medium text-sm leading-relaxed">
+                        Pick 5 researchers for future direction, 5 builders for practical skills, 3 founders for product sense, and 3 creators for inspiration. If you follow even 10 people from this list, you'll be ahead of 95% of learners.
+                      </p>
+                    </div>
                   </div>
                 )}
               </>
