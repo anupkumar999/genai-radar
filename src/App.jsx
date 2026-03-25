@@ -20,6 +20,7 @@ function App() {
 
   // --- RESEARCH STATE ---
   const [researchTab, setResearchTab] = useState('papers'); // 'papers' or 'news'
+  const [researchSortBy, setResearchSortBy] = useState('date'); // 'date' or 'points'
   const [papers, setPapers] = useState([]);
   const [news, setNews] = useState([]);
   const [loadingResearch, setLoadingResearch] = useState(true);
@@ -58,6 +59,11 @@ function App() {
     { id: 'stars', name: 'Highest Rated (Famous)', val: 'stars' },
     { id: 'updated', name: 'Recently Active', val: 'updated' },
     { id: 'rising', name: 'Rising Gems (New)', val: 'updated' } 
+  ];
+
+  const researchSortOptions = [
+    { id: 'date', name: 'Newest First', val: 'date' },
+    { id: 'points', name: 'Highest Rated', val: 'points' }
   ];
 
   const languages = [
@@ -122,6 +128,12 @@ function App() {
     return () => clearTimeout(delayDebounceFn);
   }, [topic, timeRange, sortBy, language, author, searchQuery, mainView]);
 
+  // Reset research data when sort changes
+  useEffect(() => {
+    setPapers([]);
+    setNews([]);
+  }, [researchSortBy, researchTab]);
+
   // --- FETCH RESEARCH ---
   useEffect(() => {
     if (mainView !== 'research') return;
@@ -129,11 +141,10 @@ function App() {
       setLoadingResearch(true);
       try {
         if (researchTab === 'papers' && papers.length === 0) {
-          // Fetch Hugging Face Daily Papers (The Gold Standard)
           const hfRes = await fetch('https://huggingface.co/api/daily_papers');
           if (hfRes.ok) {
             const hfData = await hfRes.json();
-            const mappedPapers = hfData.map(item => ({
+            let mappedPapers = hfData.map(item => ({
               id: item.paper.id,
               title: item.paper.title,
               summary: item.paper.summary,
@@ -143,34 +154,46 @@ function App() {
               upvotes: item.paper.upvotes,
               date: item.paper.publishedAt
             }));
+
+            if (researchSortBy === 'date') {
+              mappedPapers.sort((a, b) => new Date(b.date) - new Date(a.date));
+            } else {
+              mappedPapers.sort((a, b) => b.upvotes - a.upvotes);
+            }
+            
             setPapers(mappedPapers);
           }
         }
         
         if (researchTab === 'news' && news.length === 0) {
           const terms = ['LLM', 'OpenAI', 'Anthropic', 'AI Agents'];
+          const endpoint = researchSortBy === 'date' ? 'search_by_date' : 'search';
           
           const promises = terms.map(term => 
-            fetch(`https://hn.algolia.com/api/v1/search_by_date?query=${encodeURIComponent(term)}&tags=story&numericFilters=points>10&hitsPerPage=15`).then(res => res.json())
+            fetch(`https://hn.algolia.com/api/v1/${endpoint}?query=${encodeURIComponent(term)}&tags=story&numericFilters=points>10&hitsPerPage=15`).then(res => res.json())
           );
           
           const results = await Promise.all(promises);
           
-          // Flatten and deduplicate
           const allHits = [];
           const seenIds = new Set();
           
           results.forEach(data => {
-            data.hits.forEach(item => {
-              if (!seenIds.has(item.objectID)) {
-                seenIds.add(item.objectID);
-                allHits.push(item);
-              }
-            });
+            if (data && data.hits) {
+              data.hits.forEach(item => {
+                if (!seenIds.has(item.objectID)) {
+                  seenIds.add(item.objectID);
+                  allHits.push(item);
+                }
+              });
+            }
           });
           
-          // Sort strictly by Date (Newest to Oldest)
-          allHits.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+          if (researchSortBy === 'date') {
+            allHits.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+          } else {
+            allHits.sort((a, b) => b.points - a.points);
+          }
           
           const mappedNews = allHits.slice(0, 30).map(item => ({
             id: item.objectID,
@@ -191,7 +214,7 @@ function App() {
       }
     };
     fetchResearch();
-  }, [mainView, researchTab, papers.length, news.length]);
+  }, [mainView, researchTab, researchSortBy, papers.length, news.length]);
 
   const handleCopyClone = (e, repo) => {
     e.preventDefault();
@@ -436,24 +459,38 @@ function App() {
               <p className="text-slate-500 font-medium mt-2 text-lg">The absolute must-read AI research papers and engineering blogs updated daily.</p>
             </div>
 
-            {/* Research Tabs */}
-            <div className="flex border-b border-slate-200 mb-8">
-              <button 
-                onClick={() => setResearchTab('papers')}
-                className={`pb-4 px-6 text-sm font-bold tracking-wide uppercase transition-all border-b-[3px] flex items-center gap-2 ${
-                  researchTab === 'papers' ? 'border-blue-600 text-blue-700 bg-blue-50/50' : 'border-transparent text-slate-500 hover:text-slate-800'
-                }`}
-              >
-                <FileText size={18} /> Hugging Face Daily Papers
-              </button>
-              <button 
-                onClick={() => setResearchTab('news')}
-                className={`pb-4 px-6 text-sm font-bold tracking-wide uppercase transition-all border-b-[3px] flex items-center gap-2 ${
-                  researchTab === 'news' ? 'border-blue-600 text-blue-700 bg-blue-50/50' : 'border-transparent text-slate-500 hover:text-slate-800'
-                }`}
-              >
-                <Newspaper size={18} /> Top Tech News & Blogs
-              </button>
+            {/* Research Tabs and Filters */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-200 mb-8 gap-4">
+              <div className="flex">
+                <button 
+                  onClick={() => setResearchTab('papers')}
+                  className={`pb-4 px-6 text-sm font-bold tracking-wide uppercase transition-all border-b-[3px] flex items-center gap-2 ${
+                    researchTab === 'papers' ? 'border-blue-600 text-blue-700 bg-blue-50/50' : 'border-transparent text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  <FileText size={18} /> Hugging Face Daily Papers
+                </button>
+                <button 
+                  onClick={() => setResearchTab('news')}
+                  className={`pb-4 px-6 text-sm font-bold tracking-wide uppercase transition-all border-b-[3px] flex items-center gap-2 ${
+                    researchTab === 'news' ? 'border-blue-600 text-blue-700 bg-blue-50/50' : 'border-transparent text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  <Newspaper size={18} /> Top Tech News & Blogs
+                </button>
+              </div>
+              
+              {/* Research Sort Dropdown */}
+              <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 focus-within:ring-2 ring-blue-500/20 mb-4 sm:mb-2">
+                <TrendingUp size={16} className="text-slate-400" />
+                <select 
+                  value={researchSortBy} 
+                  onChange={(e) => setResearchSortBy(e.target.value)}
+                  className="bg-transparent text-sm font-bold text-slate-700 focus:outline-none cursor-pointer w-full"
+                >
+                  {researchSortOptions.map(s => <option key={s.id} value={s.val}>{s.name}</option>)}
+                </select>
+              </div>
             </div>
 
             {loadingResearch ? (
