@@ -153,7 +153,7 @@ function App() {
           const terms = ['LLM', 'OpenAI', 'Anthropic', 'AI Agents'];
           
           const promises = terms.map(term => 
-            fetch(`https://hn.algolia.com/api/v1/search?query=${encodeURIComponent(term)}&tags=story&hitsPerPage=10`).then(res => res.json())
+            fetch(`https://hn.algolia.com/api/v1/search_by_date?query=${encodeURIComponent(term)}&tags=story&hitsPerPage=10`).then(res => res.json())
           );
           
           const results = await Promise.all(promises);
