@@ -1,34 +1,34 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Star, GitFork, Clock, BookOpen, Newspaper, ExternalLink, MessageSquare, Terminal, Search, Sparkles, Brain, Cpu, Globe2, BookMarked, Wrench } from 'lucide-react';
+import { Terminal, Star, GitFork, Clock, BookOpen, Newspaper, ExternalLink, MessageSquare, Code2, Search, Sparkles, Brain, Cpu, Globe2, BookMarked, Wrench } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
 function App() {
-  const [activeTab, setActiveTab] = useState('repos'); // 'repos' or 'news'
+  const [activeTab, setActiveTab] = useState('repos'); 
   const [searchQuery, setSearchQuery] = useState('');
   
-  // Data States
   const [repos, setRepos] = useState([]);
   const [loadingRepos, setLoadingRepos] = useState(true);
   
   const [news, setNews] = useState([]);
   const [loadingNews, setLoadingNews] = useState(true);
 
-  // Define the comprehensive AI Categories the world is actually using
+  // Simplified and broadened GitHub queries to ensure results always return
   const categories = [
-    { id: 'global', icon: <Globe2 size={16} />, label: '🌍 Global AI Trends', ghQuery: 'topic:generative-ai OR topic:machine-learning stars:>1000', hnQuery: '"Artificial Intelligence" OR "Machine Learning" OR AGI OR "GenAI"' },
-    { id: 'openai', icon: <Sparkles size={16} />, label: '⚡ ChatGPT & OpenAI', ghQuery: 'topic:openai OR topic:chatgpt OR topic:gpt-4 stars:>100', hnQuery: '"OpenAI" OR "ChatGPT" OR "GPT-4" OR "Sora"' },
-    { id: 'anthropic', icon: <Brain size={16} />, label: '🧠 Claude & Anthropic', ghQuery: 'topic:claude OR topic:anthropic stars:>50', hnQuery: '"Claude" OR "Anthropic" OR "Claude 3"' },
-    { id: 'opensource', icon: <Cpu size={16} />, label: '🔓 Open Source LLMs', ghQuery: 'topic:llama OR topic:mistral OR topic:huggingface stars:>100', hnQuery: '"Llama" OR "Mistral" OR "Hugging Face" OR "Open Source LLM"' },
-    { id: 'agents', icon: <Terminal size={16} />, label: '🤖 Agents & RAG', ghQuery: 'topic:ai-agents OR topic:rag OR topic:langchain stars:>100', hnQuery: '"AI Agents" OR "RAG" OR "LangChain" OR "AutoGPT" OR "Vector DB"' },
-    { id: 'skills', icon: <Wrench size={16} />, label: '🛠️ Engineer Skills', ghQuery: 'topic:prompt-engineering OR topic:fine-tuning stars:>50', hnQuery: '"Prompt Engineering" OR "Fine-tuning" OR "AI Tutorial" OR "MLOps"' },
+    { id: 'global', icon: <Globe2 size={16} />, label: '🌍 Global AI Trends', ghQuery: 'topic:machine-learning stars:>500', hnQuery: '"Artificial Intelligence" OR "Machine Learning" OR AGI OR "GenAI"' },
+    { id: 'openai', icon: <Sparkles size={16} />, label: '⚡ ChatGPT & OpenAI', ghQuery: 'topic:openai OR topic:chatgpt stars:>50', hnQuery: '"OpenAI" OR "ChatGPT" OR "GPT-4" OR "Sora"' },
+    { id: 'anthropic', icon: <Brain size={16} />, label: '🧠 Claude & Anthropic', ghQuery: 'claude OR anthropic in:name,description,topics stars:>10', hnQuery: '"Claude" OR "Anthropic" OR "Claude 3"' },
+    { id: 'opensource', icon: <Cpu size={16} />, label: '🔓 Open Source LLMs', ghQuery: 'topic:llm OR topic:llama OR topic:mistral stars:>50', hnQuery: '"Llama" OR "Mistral" OR "Hugging Face" OR "Open Source LLM"' },
+    { id: 'agents', icon: <Terminal size={16} />, label: '🤖 Agents & RAG', ghQuery: 'topic:agents OR topic:rag OR topic:langchain stars:>50', hnQuery: '"AI Agents" OR "RAG" OR "LangChain" OR "AutoGPT" OR "Vector DB"' },
+    { id: 'skills', icon: <Wrench size={16} />, label: '🛠️ Engineer Skills', ghQuery: 'topic:prompt-engineering OR topic:fine-tuning OR topic:mlops stars:>20', hnQuery: '"Prompt Engineering" OR "Fine-tuning" OR "AI Tutorial" OR "MLOps"' },
   ];
 
   const [activeCategory, setActiveCategory] = useState(categories[0]);
 
-  // Fetch GitHub Repos based on Category
+  // Fetch GitHub Repos
   useEffect(() => {
     const fetchRepos = async () => {
       setLoadingRepos(true);
+      setRepos([]); // Clear previous repos to show loading state
       try {
         const response = await fetch(`https://api.github.com/search/repositories?q=${encodeURIComponent(activeCategory.ghQuery)}&sort=updated&order=desc&per_page=30`);
         const data = await response.json();
@@ -42,12 +42,12 @@ function App() {
     if (activeTab === 'repos') fetchRepos();
   }, [activeCategory, activeTab]);
 
-  // Fetch News based on Category
+  // Fetch News
   useEffect(() => {
     const fetchNewsFeed = async () => {
       setLoadingNews(true);
+      setNews([]); // Clear previous news
       try {
-        // Hacker News API
         const hnRes = await fetch(`https://hn.algolia.com/api/v1/search?query=${encodeURIComponent(activeCategory.hnQuery)}&tags=story&hitsPerPage=20`);
         const hnData = await hnRes.json();
         const hnItems = hnData.hits.map(item => ({
@@ -60,7 +60,6 @@ function App() {
           icon: <Newspaper size={16} className="text-orange-500" />
         }));
 
-        // Dev.to API (For skills, we inject tutorials)
         let devItems = [];
         if (activeCategory.id === 'skills' || activeCategory.id === 'global') {
           const devRes = await fetch('https://dev.to/api/articles?tag=ai&top=1&per_page=10');
@@ -87,13 +86,12 @@ function App() {
     if (activeTab === 'news') fetchNewsFeed();
   }, [activeCategory, activeTab]);
 
-  // Search Filtering Logic
   const filteredRepos = useMemo(() => {
     if (!searchQuery) return repos;
     return repos.filter(repo => 
       repo.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
       (repo.description && repo.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      repo.topics.some(t => t.toLowerCase().includes(searchQuery.toLowerCase()))
+      (repo.topics && repo.topics.some(t => t.toLowerCase().includes(searchQuery.toLowerCase())))
     );
   }, [repos, searchQuery]);
 
@@ -105,7 +103,6 @@ function App() {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 font-sans selection:bg-blue-100 selection:text-blue-900 pb-20">
       
-      {/* Header & Navigation - Light Mode Premium UI */}
       <header className="border-b border-slate-200 bg-white/80 backdrop-blur-xl sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-[72px] flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -117,7 +114,6 @@ function App() {
             </h1>
           </div>
 
-          {/* Search Bar */}
           <div className="hidden md:flex relative w-96">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
             <input 
@@ -130,7 +126,6 @@ function App() {
           </div>
         </div>
 
-        {/* Tab Selection */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 flex gap-8">
           <button 
             onClick={() => setActiveTab('repos')}
@@ -138,7 +133,7 @@ function App() {
               activeTab === 'repos' ? 'border-blue-600 text-blue-700' : 'border-transparent text-slate-500 hover:text-slate-800'
             }`}
           >
-            <Terminal size={18} /> Code & Repos
+            <Code2 size={18} /> Code & Repos
           </button>
           <button 
             onClick={() => setActiveTab('news')}
@@ -151,10 +146,8 @@ function App() {
         </div>
       </header>
 
-      {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 pt-8">
         
-        {/* Mobile Search Bar */}
         <div className="md:hidden relative mb-6">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
           <input 
@@ -168,7 +161,6 @@ function App() {
 
         <div className="flex flex-col lg:flex-row gap-8 items-start">
           
-          {/* Sidebar Categories */}
           <aside className="w-full lg:w-64 shrink-0 overflow-x-auto no-scrollbar pb-4 lg:pb-0 lg:sticky lg:top-32">
             <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 px-2 hidden lg:block">Intelligence Radar</h3>
             <div className="flex lg:flex-col gap-2 min-w-max lg:min-w-0">
@@ -190,9 +182,7 @@ function App() {
             </div>
           </aside>
 
-          {/* Content Area */}
           <div className="flex-1 w-full min-w-0">
-            {/* Context Header */}
             <div className="mb-6">
               <h2 className="text-2xl font-extrabold text-slate-900 flex items-center gap-2">
                 {activeCategory.label.replace(/[\u1000-\uFFFF]+/g, '').trim()} Feed
@@ -200,14 +190,12 @@ function App() {
               <p className="text-slate-500 font-medium">Real-time pulse of {activeTab === 'repos' ? 'repositories' : 'discussions'} updated today.</p>
             </div>
 
-            {/* Loading State */}
             {(loadingRepos && activeTab === 'repos') || (loadingNews && activeTab === 'news') ? (
               <div className="flex justify-center py-20">
                 <div className="w-10 h-10 border-4 border-slate-200 border-t-blue-600 rounded-full animate-spin"></div>
               </div>
             ) : (
               <>
-                {/* TAB 1: REPOS */}
                 {activeTab === 'repos' && (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {filteredRepos.length > 0 ? filteredRepos.map((repo) => (
@@ -221,7 +209,7 @@ function App() {
                         </div>
                         <p className="text-sm text-slate-600 line-clamp-2 mb-4 flex-grow">{repo.description}</p>
                         <div className="flex flex-wrap gap-2 mb-4">
-                          {repo.topics.slice(0, 3).map(topic => (
+                          {repo.topics && repo.topics.slice(0, 3).map(topic => (
                             <span key={topic} className="px-2 py-1 bg-slate-50 border border-slate-200 rounded-md text-[10px] font-bold text-slate-500 uppercase tracking-wider">
                               {topic}
                             </span>
@@ -236,12 +224,11 @@ function App() {
                         </div>
                       </a>
                     )) : (
-                      <div className="col-span-2 text-center py-12 text-slate-500 font-medium">No repositories found for "{searchQuery}".</div>
+                      <div className="col-span-2 text-center py-12 text-slate-500 font-medium">No repositories found. GitHub API rate limits might be active, or try another category.</div>
                     )}
                   </div>
                 )}
 
-                {/* TAB 2: NEWS */}
                 {activeTab === 'news' && (
                   <div className="space-y-3">
                     {filteredNews.length > 0 ? filteredNews.map((item, idx) => (
