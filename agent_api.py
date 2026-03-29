@@ -54,16 +54,24 @@ async def run_agent(req: AgentRequest):
         llm.model_name = llm.model # Patch for browser-use eventbus crash
         
         task = """
-        Go to Hacker News (news.ycombinator.com).
-        Find the top 3 most interesting recent news articles related to AI, LLMs, or Machine Learning today.
-        Return the result strictly as a valid JSON array of objects with keys: "title", "source", "summary", "link".
-        Ensure you output ONLY the valid JSON array and nothing else.
+        1. Go to https://news.ycombinator.com/
+        2. Look at the top 3 news headlines on the page.
+        3. For each of those 3 headlines, extract the title, the source domain (e.g. github.com), and the link URL.
+        4. Write a 1-sentence summary based on the title.
+        
+        You MUST return ONLY a raw JSON array of objects. Do not wrap it in markdown. Example format:
+        [
+          {"title": "...", "source": "...", "summary": "...", "link": "..."}
+        ]
         """
         
         agent = Agent(task=task, llm=llm)
         result = await agent.run()
         
         final_text = result.final_result()
+        
+        if final_text is None:
+            raise ValueError("Agent failed to return any text.")
         if final_text.startswith("```json"):
             final_text = final_text.strip("```json").strip("```")
         elif final_text.startswith("```"):
