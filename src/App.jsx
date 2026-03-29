@@ -409,16 +409,12 @@ ${truncatedReadme}`;
   };
 
   const triggerAgent = async () => {
-    if (!geminiKey) {
-      setShowKeyModal(true);
-      return;
-    }
     setIsAgentRunning(true);
     try {
       const res = await fetch('http://localhost:8000/api/run-agent', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ api_key: geminiKey.trim() })
+        body: JSON.stringify({}) // No API key required anymore!
       });
       if (res.ok) {
         const data = await res.json();
@@ -964,8 +960,8 @@ ${truncatedReadme}`;
                           <Sparkles size={20} className={isAgentRunning ? "animate-spin" : ""} />
                         </div>
                         <div>
-                          <h4 className="font-semibold text-slate-800 dark:text-zinc-200 text-sm">Automated Browser Agent</h4>
-                          <p className="text-xs text-slate-500 dark:text-zinc-400">Uses Browser Use + Gemini to browse the web for you.</p>
+                          <h4 className="font-semibold text-slate-800 dark:text-zinc-200 text-sm">Automated Browser Automation</h4>
+                          <p className="text-xs text-slate-500 dark:text-zinc-400">Uses local Playwright to visibly scrape the web for you (No API Key needed).</p>
                         </div>
                       </div>
                       <button 
@@ -973,7 +969,7 @@ ${truncatedReadme}`;
                         disabled={isAgentRunning}
                         className="bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white px-4 py-2 rounded-xl text-sm font-semibold tracking-wide transition-all shadow-sm flex items-center gap-2"
                       >
-                        {isAgentRunning ? 'Browsing the web...' : 'Run AI Agent'}
+                        {isAgentRunning ? 'Browsing the web...' : 'Run Browser Agent'}
                       </button>
                     </div>
 
