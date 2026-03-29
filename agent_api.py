@@ -9,6 +9,10 @@ from fastapi.middleware.cors import CORSMiddleware
 try:
     from browser_use import Agent
     from langchain_google_genai import ChatGoogleGenerativeAI
+except ImportError:
+    print("Missing requirements. Please run: pip install fastapi uvicorn browser-use langchain-google-genai pydantic")
+    exit(1)
+
 from unittest.mock import MagicMock
 
 # --- PATCH FOR BROWSER USE WITH GEMINI ---
@@ -20,9 +24,6 @@ def patch_llm(llm):
         llm.provider = "google"
     return llm
 # ---------------------------------------
-except ImportError:
-    print("Missing requirements. Please run: pip install fastapi uvicorn browser-use langchain-google-genai pydantic")
-    exit(1)
 
 app = FastAPI()
 
