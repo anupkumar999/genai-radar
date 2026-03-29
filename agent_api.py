@@ -51,6 +51,7 @@ async def run_agent(req: AgentRequest):
             google_api_key=req.api_key
         )
         llm.provider = "google" # Patch for browser-use telemetry
+        llm.model_name = llm.model # Patch for browser-use eventbus crash
         
         task = """
         Go to Hacker News (news.ycombinator.com).
