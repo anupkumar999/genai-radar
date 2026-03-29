@@ -435,6 +435,13 @@ ${truncatedReadme}`;
     }
   };
 
+  // Smart auto-fetch when navigating to Morning Briefing
+  useEffect(() => {
+    if (researchTab === 'agent' && agentNews.length === 0 && !isAgentRunning) {
+      triggerAgent();
+    }
+  }, [researchTab]);
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-[#0a0a0a] text-slate-800 dark:text-zinc-300 font-sans selection:bg-blue-200 dark:selection:bg-indigo-500/30 selection:text-blue-900 dark:selection:text-indigo-200 pb-20 transition-colors duration-300">
       
@@ -836,10 +843,10 @@ ${truncatedReadme}`;
                 <button 
                   onClick={() => setResearchTab('agent')}
                   className={`pb-4 px-4 text-xs font-semibold tracking-wider uppercase transition-all border-b-2 flex items-center gap-2 ${
-                    researchTab === 'agent' ? 'border-blue-600 dark:border-indigo-500 text-blue-700 dark:text-zinc-100' : 'border-transparent text-slate-500 dark:text-zinc-500 hover:text-slate-800 dark:hover:text-zinc-300'
+                    researchTab === 'agent' ? 'border-amber-500 text-amber-600 dark:text-amber-400' : 'border-transparent text-slate-500 dark:text-zinc-500 hover:text-slate-800 dark:hover:text-zinc-300'
                   }`}
                 >
-                  <Sparkles size={16} className={researchTab === 'agent' ? 'text-amber-500 animate-pulse' : ''} /> Agent News
+                  <Sun size={16} className={researchTab === 'agent' ? 'text-amber-500 animate-[spin_10s_linear_infinite]' : ''} /> Morning Briefing
                 </button>
               </div>
               
@@ -955,42 +962,42 @@ ${truncatedReadme}`;
                 {researchTab === 'agent' && (
                   <div className="space-y-4 max-w-4xl mx-auto">
                     
-                    <div className="flex justify-between items-center bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-700/30 p-4 rounded-2xl mb-6">
-                      <div className="flex items-center gap-3">
-                        <div className="bg-amber-100 dark:bg-amber-800/30 p-2 rounded-xl text-amber-600 dark:text-amber-400">
-                          <Sparkles size={20} className={isAgentRunning ? "animate-spin" : ""} />
+                    <div className="flex justify-between items-center bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/10 dark:to-orange-900/10 border border-amber-200 dark:border-amber-700/30 p-5 rounded-2xl mb-6 shadow-sm">
+                      <div className="flex items-center gap-4">
+                        <div className="bg-gradient-to-br from-amber-400 to-orange-500 p-2.5 rounded-xl text-white shadow-sm">
+                          <Sun size={24} className={isAgentRunning ? "animate-pulse" : ""} />
                         </div>
                         <div>
-                          <h4 className="font-semibold text-slate-800 dark:text-zinc-200 text-sm">Automated Browser Automation</h4>
-                          <p className="text-xs text-slate-500 dark:text-zinc-400">Uses local Playwright to visibly scrape the web for you (No API Key needed).</p>
+                          <h4 className="font-bold text-slate-800 dark:text-zinc-100 text-base">The AI Developer's Morning Briefing</h4>
+                          <p className="text-sm text-slate-600 dark:text-zinc-400 mt-0.5">Your smart, daily curated digest of the most important AI engineering news.</p>
                         </div>
                       </div>
                       <button 
                         onClick={triggerAgent}
                         disabled={isAgentRunning}
-                        className="bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white px-4 py-2 rounded-xl text-sm font-semibold tracking-wide transition-all shadow-sm flex items-center gap-2"
+                        className="bg-slate-900 hover:bg-slate-800 dark:bg-amber-500 dark:hover:bg-amber-600 disabled:opacity-50 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-md flex items-center gap-2"
                       >
-                        {isAgentRunning ? 'Browsing the web...' : 'Run Browser Agent'}
+                        {isAgentRunning ? 'Curating your brief...' : 'Refresh Briefing'}
                       </button>
                     </div>
 
                     {isAgentRunning && agentNews.length === 0 ? (
-                      <div className="text-center text-amber-600/70 dark:text-amber-400/70 py-10 border border-dashed border-amber-200 dark:border-amber-900/30 rounded-2xl animate-pulse">
-                         <Globe size={32} className="mx-auto mb-4 animate-spin opacity-50" />
-                         <p className="font-medium">Opening browser and searching for news...</p>
-                         <p className="text-sm mt-1">This takes about 30-60 seconds.</p>
+                      <div className="text-center text-amber-600/70 dark:text-amber-400/70 py-12 border border-dashed border-amber-200 dark:border-amber-900/30 rounded-2xl animate-pulse bg-amber-50/30 dark:bg-amber-900/5">
+                         <Sun size={36} className="mx-auto mb-4 animate-[spin_3s_linear_infinite] opacity-70" />
+                         <p className="font-semibold text-lg">Curating your morning AI updates...</p>
+                         <p className="text-sm mt-2 opacity-80">Scanning top tech sources for the latest breakthroughs.</p>
                       </div>
                     ) : agentNews.length === 0 ? (
-                       <div className="text-center text-slate-500 dark:text-zinc-500 py-10 border border-dashed border-slate-300 dark:border-white/10 rounded-2xl">
-                         <Sparkles size={32} className="mx-auto mb-4 text-amber-500/50" />
-                         <p className="font-medium text-slate-700 dark:text-zinc-300">No daily agent news yet.</p>
-                         <p className="text-sm mt-1">Click the button above to launch the browser agent!</p>
+                       <div className="text-center text-slate-500 dark:text-zinc-500 py-12 border border-dashed border-slate-300 dark:border-white/10 rounded-2xl">
+                         <Sun size={36} className="mx-auto mb-4 text-amber-500/50" />
+                         <p className="font-semibold text-slate-700 dark:text-zinc-300 text-lg">Ready for your daily standup?</p>
+                         <p className="text-sm mt-2">Click refresh to fetch today's top AI engineering news.</p>
                        </div>
                     ) : agentNews.map((item, idx) => (
-                      <a key={idx} href={item.link} target="_blank" rel="noreferrer" className="group block bg-amber-50/30 dark:bg-[#151310] border border-amber-200/50 dark:border-amber-900/30 rounded-3xl p-7 shadow-sm dark:shadow-none hover:border-amber-400 dark:hover:border-amber-700/50 transition-all relative overflow-hidden">
+                      <a key={idx} href={item.link} target="_blank" rel="noreferrer" className="group block bg-white dark:bg-[#121212] border border-slate-200 dark:border-white/5 rounded-3xl p-7 shadow-sm dark:shadow-none hover:border-amber-300 dark:hover:border-amber-700/50 transition-all relative overflow-hidden">
                         <div className="flex items-center gap-3 mb-4">
-                          <span className="bg-amber-100/50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 text-amber-700 dark:text-amber-400 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest flex items-center gap-1.5">
-                            <Sparkles size={10} className="animate-pulse" /> Daily AI Pick
+                          <span className="bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 text-amber-700 dark:text-amber-400 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest flex items-center gap-1.5">
+                            <Sun size={10} className="" /> Dev Update
                           </span>
                           <span className="bg-white/60 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-zinc-400 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest flex items-center gap-1.5">
                             <Globe size={10} /> {item.source}
