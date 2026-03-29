@@ -27,32 +27,43 @@ async def run_agent():
             browser = await p.chromium.launch(headless=False) # Keep it visible for the "Agent" feel
             page = await browser.new_page()
             
-            # Use Hacker News Algolia Search for pure AI news specifically
-            print("Going to Hacker News Search for AI topics...")
-            # We construct a URL that searches for AI/LLM explicitly and sorts by date
-            search_url = "https://hn.algolia.com/?dateRange=pastWeek&page=0&prefix=false&query=AI%20OR%20LLM%20OR%20OpenAI%20OR%20Anthropic&sort=byDate&type=story"
-            await page.goto(search_url, wait_until="networkidle")
+            # Use Hacker News Search for pure AI news specifically
+            print("Going to TechCrunch AI...")
+            await page.goto("https://techcrunch.com/category/artificial-intelligence/", wait_until="domcontentloaded")
             
-            # Extract the top 10 AI-specific articles
+            # Wait for headlines to load
+            await page.wait_for_selector("h2, h3", timeout=10000)
+            
+            # Extract the top 10 AI-specific articles from TechCrunch
             articles = await page.evaluate("""() => {
-                const rows = Array.from(document.querySelectorAll('.Story')).slice(0, 10);
+                const links = Array.from(document.querySelectorAll('a'))
+                    .filter(a => {
+                        const h2 = a.querySelector('h2');
+                        const h3 = a.querySelector('h3');
+                        return h2 || h3;
+                    });
                 
-                return rows.map(row => {
-                    const titleEl = row.querySelector('.Story_title > a');
-                    const siteEl = row.querySelector('.Story_link'); // This contains the hostname in Algolia UI
+                const uniqueArticles = [];
+                const seenTitles = new Set();
+                
+                for (const a of links) {
+                    const h2 = a.querySelector('h2');
+                    const h3 = a.querySelector('h3');
+                    const title = (h2 ? h2.innerText : h3.innerText).trim();
                     
-                    let domain = "news.ycombinator.com";
-                    if (siteEl) {
-                        domain = siteEl.innerText.replace('(', '').replace(')', '').trim();
+                    if (title.length > 15 && !seenTitles.has(title)) {
+                        seenTitles.add(title);
+                        uniqueArticles.push({
+                            title: title,
+                            link: a.href,
+                            source: "techcrunch.com",
+                            summary: "Latest AI breaking news."
+                        });
                     }
-                    
-                    return {
-                        title: titleEl ? titleEl.innerText : "Unknown Title",
-                        link: titleEl ? titleEl.href : "",
-                        source: domain,
-                        summary: "Recent trending AI news."
-                    };
-                });
+                    if (uniqueArticles.length >= 10) break;
+                }
+                
+                return uniqueArticles;
             }""")
             
             await browser.close()
