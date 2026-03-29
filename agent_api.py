@@ -1,0 +1,76 @@
+import asyncio
+import json
+import os
+import uvicorn
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
+from fastapi.middleware.cors import CORSMiddleware
+
+try:
+    from browser_use import Agent
+    from langchain_google_genai import ChatGoogleGenerativeAI
+except ImportError:
+    print("Missing requirements. Please run: pip install fastapi uvicorn browser-use langchain-google-genai pydantic")
+    exit(1)
+
+app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"], # Allows React frontend to connect
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+class AgentRequest(BaseModel):
+    api_key: str
+
+@app.post("/api/run-agent")
+async def run_agent(req: AgentRequest):
+    if not req.api_key:
+        raise HTTPException(status_code=400, detail="Gemini API Key is required")
+        
+    print("🤖 Firing up Browser Use with Gemini...")
+    
+    try:
+        # Initialize Gemini
+        llm = ChatGoogleGenerativeAI(
+            model="gemini-1.5-pro", 
+            google_api_key=req.api_key
+        )
+        
+        task = """
+        Go to Hacker News (news.ycombinator.com).
+        Find the top 3 most interesting recent news articles related to AI, LLMs, or Machine Learning today.
+        Return the result strictly as a valid JSON array of objects with keys: "title", "source", "summary", "link".
+        Ensure you output ONLY the valid JSON array and nothing else.
+        """
+        
+        agent = Agent(task=task, llm=llm)
+        result = await agent.run()
+        
+        final_text = result.final_result()
+        if final_text.startswith("```json"):
+            final_text = final_text.strip("```json").strip("```")
+        elif final_text.startswith("```"):
+            final_text = final_text.strip("```")
+            
+        final_text = final_text.strip()
+        json_data = json.loads(final_text)
+        
+        # Save to public folder so React can keep reading it later too
+        output_path = os.path.join("public", "daily_ai_news.json")
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        with open(output_path, "w") as f:
+            json.dump(json_data, f, indent=2)
+            
+        return {"success": True, "news": json_data}
+        
+    except Exception as e:
+        print(f"Error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+if __name__ == "__main__":
+    print("🚀 Starting local Agent API on http://localhost:8000")
+    uvicorn.run(app, host="0.0.0.0", port=8000)

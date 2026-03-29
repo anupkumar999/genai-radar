@@ -1,0 +1,20 @@
+[
+  {
+    "title": "Sam Altman announces new AI reasoning model",
+    "source": "TechCrunch",
+    "summary": "OpenAI has officially launched a new class of reasoning models capable of solving complex math and coding problems.",
+    "link": "https://techcrunch.com/2024/05/13/openai-gpt-4o/"
+  },
+  {
+    "title": "Anthropic's Claude 3.5 Sonnet drops with a major vision upgrade",
+    "source": "Anthropic Blog",
+    "summary": "Anthropic introduced Claude 3.5 Sonnet, promising 2x faster performance and massive vision capabilities.",
+    "link": "https://anthropic.com/news/claude-3-5-sonnet"
+  },
+  {
+    "title": "Hugging Face partners with Google Cloud for open-source AI",
+    "source": "Hugging Face",
+    "summary": "Google Cloud and Hugging Face announce a strategic partnership to accelerate open-source AI development.",
+    "link": "https://huggingface.co/blog/google-cloud-partnership"
+  }
+]

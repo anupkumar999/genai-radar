@@ -50,7 +50,9 @@ function App() {
   const [papers, setPapers] = useState([]);
   const [news, setNews] = useState([]);
   const [liveNews, setLiveNews] = useState([]);
+  const [agentNews, setAgentNews] = useState([]);
   const [loadingResearch, setLoadingResearch] = useState(true);
+  const [isAgentRunning, setIsAgentRunning] = useState(false);
 
   // --- TRENDING ALERT STATE ---
   const [trendingAlert, setTrendingAlert] = useState(null);
@@ -181,6 +183,7 @@ function App() {
     setPapers([]);
     setNews([]);
     setLiveNews([]);
+    setAgentNews([]);
   }, [researchSortBy, researchTab]);
 
   // --- FETCH RESEARCH ---
@@ -292,6 +295,18 @@ function App() {
           
           setLiveNews(mappedLive);
         }
+
+        if (researchTab === 'agent' && agentNews.length === 0) {
+          try {
+            const res = await fetch('/daily_ai_news.json');
+            if (res.ok) {
+              const data = await res.json();
+              setAgentNews(data);
+            }
+          } catch (e) {
+            console.error("Failed to fetch agent news:", e);
+          }
+        }
       } catch (error) {
         console.error("Failed to fetch research", error);
       } finally {
@@ -391,6 +406,36 @@ ${truncatedReadme}`;
   const saveGeminiKey = () => {
     localStorage.setItem('gemini_api_key', geminiKey.trim());
     setShowKeyModal(false);
+  };
+
+  const triggerAgent = async () => {
+    if (!geminiKey) {
+      setShowKeyModal(true);
+      return;
+    }
+    setIsAgentRunning(true);
+    try {
+      const res = await fetch('http://localhost:8000/api/run-agent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ api_key: geminiKey.trim() })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && data.news) {
+          setAgentNews(data.news);
+        }
+      } else {
+        const errData = await res.json();
+        console.error("Agent failed:", errData.detail);
+        alert(`Failed to run agent: ${errData.detail}`);
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Failed to connect to the local Agent Server. Ensure 'python agent_api.py' is running on port 8000.");
+    } finally {
+      setIsAgentRunning(false);
+    }
   };
 
   return (
@@ -791,6 +836,14 @@ ${truncatedReadme}`;
                 >
                   <Activity size={16} className={researchTab === 'live' ? 'animate-pulse text-red-500' : ''} /> Live Feed
                 </button>
+                <button 
+                  onClick={() => setResearchTab('agent')}
+                  className={`pb-4 px-4 text-xs font-semibold tracking-wider uppercase transition-all border-b-2 flex items-center gap-2 ${
+                    researchTab === 'agent' ? 'border-blue-600 dark:border-indigo-500 text-blue-700 dark:text-zinc-100' : 'border-transparent text-slate-500 dark:text-zinc-500 hover:text-slate-800 dark:hover:text-zinc-300'
+                  }`}
+                >
+                  <Sparkles size={16} className={researchTab === 'agent' ? 'text-amber-500 animate-pulse' : ''} /> Agent News
+                </button>
               </div>
               
               <div className="flex items-center gap-2 bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2 mb-4 sm:mb-2 focus-within:border-blue-500/50 dark:focus-within:border-indigo-500/50 transition-colors">
@@ -896,6 +949,63 @@ ${truncatedReadme}`;
                           {item.title}
                           <ExternalLink size={16} className="absolute right-7 top-1/2 -translate-y-1/2 text-slate-400 dark:text-zinc-600 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
                         </h3>
+                      </a>
+                    ))}
+                  </div>
+                )}
+
+                {/* AGENT NEWS */}
+                {researchTab === 'agent' && (
+                  <div className="space-y-4 max-w-4xl mx-auto">
+                    
+                    <div className="flex justify-between items-center bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-700/30 p-4 rounded-2xl mb-6">
+                      <div className="flex items-center gap-3">
+                        <div className="bg-amber-100 dark:bg-amber-800/30 p-2 rounded-xl text-amber-600 dark:text-amber-400">
+                          <Sparkles size={20} className={isAgentRunning ? "animate-spin" : ""} />
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-slate-800 dark:text-zinc-200 text-sm">Automated Browser Agent</h4>
+                          <p className="text-xs text-slate-500 dark:text-zinc-400">Uses Browser Use + Gemini to browse the web for you.</p>
+                        </div>
+                      </div>
+                      <button 
+                        onClick={triggerAgent}
+                        disabled={isAgentRunning}
+                        className="bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white px-4 py-2 rounded-xl text-sm font-semibold tracking-wide transition-all shadow-sm flex items-center gap-2"
+                      >
+                        {isAgentRunning ? 'Browsing the web...' : 'Run AI Agent'}
+                      </button>
+                    </div>
+
+                    {isAgentRunning && agentNews.length === 0 ? (
+                      <div className="text-center text-amber-600/70 dark:text-amber-400/70 py-10 border border-dashed border-amber-200 dark:border-amber-900/30 rounded-2xl animate-pulse">
+                         <Globe size={32} className="mx-auto mb-4 animate-spin opacity-50" />
+                         <p className="font-medium">Opening browser and searching for news...</p>
+                         <p className="text-sm mt-1">This takes about 30-60 seconds.</p>
+                      </div>
+                    ) : agentNews.length === 0 ? (
+                       <div className="text-center text-slate-500 dark:text-zinc-500 py-10 border border-dashed border-slate-300 dark:border-white/10 rounded-2xl">
+                         <Sparkles size={32} className="mx-auto mb-4 text-amber-500/50" />
+                         <p className="font-medium text-slate-700 dark:text-zinc-300">No daily agent news yet.</p>
+                         <p className="text-sm mt-1">Click the button above to launch the browser agent!</p>
+                       </div>
+                    ) : agentNews.map((item, idx) => (
+                      <a key={idx} href={item.link} target="_blank" rel="noreferrer" className="group block bg-amber-50/30 dark:bg-[#151310] border border-amber-200/50 dark:border-amber-900/30 rounded-3xl p-7 shadow-sm dark:shadow-none hover:border-amber-400 dark:hover:border-amber-700/50 transition-all relative overflow-hidden">
+                        <div className="flex items-center gap-3 mb-4">
+                          <span className="bg-amber-100/50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 text-amber-700 dark:text-amber-400 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest flex items-center gap-1.5">
+                            <Sparkles size={10} className="animate-pulse" /> Daily AI Pick
+                          </span>
+                          <span className="bg-white/60 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-zinc-400 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest flex items-center gap-1.5">
+                            <Globe size={10} /> {item.source}
+                          </span>
+                        </div>
+                        <h3 className="text-lg font-semibold text-slate-900 dark:text-zinc-100 group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors mb-3 leading-snug tracking-tight pr-8">
+                          {item.title}
+                          <ExternalLink size={16} className="absolute right-7 top-1/2 -translate-y-1/2 text-amber-400 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+                        </h3>
+                        <p className="text-sm text-slate-600 dark:text-zinc-400 leading-relaxed">
+                          {item.summary}
+                        </p>
                       </a>
                     ))}
                   </div>
