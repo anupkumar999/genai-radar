@@ -31,10 +31,27 @@ async def run_agent():
             await page.goto("https://news.ycombinator.com/")
             await page.wait_for_selector(".athing")
             
-            # Extract top 3 articles directly using DOM evaluation
+            # Extract top 3 articles specifically about AI using DOM evaluation
             articles = await page.evaluate("""() => {
-                const rows = Array.from(document.querySelectorAll('.athing')).slice(0, 3);
-                return rows.map(row => {
+                const keywords = ['AI', 'LLM', 'GPT', 'Machine Learning', 'OpenAI', 'Anthropic', 'Claude', 'Neural', 'Llama'];
+                const allRows = Array.from(document.querySelectorAll('.athing'));
+                
+                // Filter for rows that mention AI keywords in the title
+                let aiRows = allRows.filter(row => {
+                    const titleEl = row.querySelector('.titleline > a');
+                    if (!titleEl) return false;
+                    const text = titleEl.innerText.toUpperCase();
+                    return keywords.some(kw => text.includes(kw.toUpperCase()));
+                });
+                
+                // If we didn't find any AI news, just grab the top 3 tech stories
+                if (aiRows.length === 0) {
+                    aiRows = allRows.slice(0, 3);
+                } else {
+                    aiRows = aiRows.slice(0, 3);
+                }
+                
+                return aiRows.map(row => {
                     const titleEl = row.querySelector('.titleline > a');
                     const siteEl = row.querySelector('.sitebit');
                     
@@ -42,7 +59,7 @@ async def run_agent():
                         title: titleEl ? titleEl.innerText : "Unknown Title",
                         link: titleEl ? titleEl.href : "",
                         source: siteEl ? siteEl.innerText.replace('(', '').replace(')', '').trim() : "news.ycombinator.com",
-                        summary: "Trending discussion on Hacker News today."
+                        summary: "Automated daily web extraction for trending topics."
                     };
                 });
             }""")
