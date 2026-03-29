@@ -14,15 +14,14 @@ except ImportError:
     exit(1)
 
 from unittest.mock import MagicMock
+from pydantic import ConfigDict
 
 # --- PATCH FOR BROWSER USE WITH GEMINI ---
-# browser-use tries to access llm.provider in its telemtry/logging, 
-# but ChatGoogleGenerativeAI doesn't have it by default. 
-def patch_llm(llm):
-    # Just mock it so browser-use doesn't crash
-    if not hasattr(llm, "provider"):
-        llm.provider = "google"
-    return llm
+# browser-use dynamically monkeys patches the LLM instance with new methods 
+# like 'ainvoke' and 'provider'. Pydantic v2 prevents adding new attributes
+# to predefined models by default. We must allow extra fields.
+class BrowserUseGoogleGenAI(ChatGoogleGenerativeAI):
+    model_config = ConfigDict(extra='allow')
 # ---------------------------------------
 
 app = FastAPI()
@@ -47,11 +46,11 @@ async def run_agent(req: AgentRequest):
     
     try:
         # Initialize Gemini
-        llm = ChatGoogleGenerativeAI(
-            model="gemini-1.5-pro", 
+        llm = BrowserUseGoogleGenAI(
+            model="gemini-2.5-flash", 
             google_api_key=req.api_key
         )
-        llm = patch_llm(llm)
+        llm.provider = "google" # Patch for browser-use telemetry
         
         task = """
         Go to Hacker News (news.ycombinator.com).
