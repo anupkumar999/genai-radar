@@ -9,6 +9,17 @@ from fastapi.middleware.cors import CORSMiddleware
 try:
     from browser_use import Agent
     from langchain_google_genai import ChatGoogleGenerativeAI
+from unittest.mock import MagicMock
+
+# --- PATCH FOR BROWSER USE WITH GEMINI ---
+# browser-use tries to access llm.provider in its telemtry/logging, 
+# but ChatGoogleGenerativeAI doesn't have it by default. 
+def patch_llm(llm):
+    # Just mock it so browser-use doesn't crash
+    if not hasattr(llm, "provider"):
+        llm.provider = "google"
+    return llm
+# ---------------------------------------
 except ImportError:
     print("Missing requirements. Please run: pip install fastapi uvicorn browser-use langchain-google-genai pydantic")
     exit(1)
@@ -39,6 +50,7 @@ async def run_agent(req: AgentRequest):
             model="gemini-1.5-pro", 
             google_api_key=req.api_key
         )
+        llm = patch_llm(llm)
         
         task = """
         Go to Hacker News (news.ycombinator.com).
