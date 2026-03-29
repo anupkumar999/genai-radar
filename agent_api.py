@@ -47,7 +47,7 @@ async def run_agent(req: AgentRequest):
     try:
         # Initialize Gemini
         llm = BrowserUseGoogleGenAI(
-            model="gemini-2.5-flash", 
+            model="gemini-2.5-pro", 
             google_api_key=req.api_key
         )
         llm.provider = "google" # Patch for browser-use telemetry
