@@ -411,7 +411,8 @@ ${truncatedReadme}`;
   const triggerAgent = async () => {
     setIsAgentRunning(true);
     try {
-      const res = await fetch('http://localhost:8000/api/run-agent', {
+      // Netlify handles requests to the generic /api/run-agent using serverless functions
+      const res = await fetch('/api/run-agent', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({}) // No API key required anymore!
@@ -428,7 +429,7 @@ ${truncatedReadme}`;
       }
     } catch (err) {
       console.error(err);
-      alert("Failed to connect to the local Agent Server. Ensure 'python agent_api.py' is running on port 8000.");
+      alert("Failed to connect to the Agent API. If running locally, ensure 'netlify dev' is running.");
     } finally {
       setIsAgentRunning(false);
     }
