@@ -27,23 +27,30 @@ async def run_agent():
             browser = await p.chromium.launch(headless=False) # Keep it visible for the "Agent" feel
             page = await browser.new_page()
             
-            print("Going to Hacker News...")
-            await page.goto("https://news.ycombinator.com/")
-            await page.wait_for_selector(".athing")
+            # Use Hacker News Algolia Search for pure AI news specifically
+            print("Going to Hacker News Search for AI topics...")
+            # We construct a URL that searches for AI/LLM explicitly and sorts by date
+            search_url = "https://hn.algolia.com/?dateRange=pastWeek&page=0&prefix=false&query=AI%20OR%20LLM%20OR%20OpenAI%20OR%20Anthropic&sort=byDate&type=story"
+            await page.goto(search_url, wait_until="networkidle")
             
-            # Extract top 10 articles from Hacker News using DOM evaluation
+            # Extract the top 10 AI-specific articles
             articles = await page.evaluate("""() => {
-                const rows = Array.from(document.querySelectorAll('.athing')).slice(0, 10);
+                const rows = Array.from(document.querySelectorAll('.Story')).slice(0, 10);
                 
                 return rows.map(row => {
-                    const titleEl = row.querySelector('.titleline > a');
-                    const siteEl = row.querySelector('.sitebit');
+                    const titleEl = row.querySelector('.Story_title > a');
+                    const siteEl = row.querySelector('.Story_link'); // This contains the hostname in Algolia UI
+                    
+                    let domain = "news.ycombinator.com";
+                    if (siteEl) {
+                        domain = siteEl.innerText.replace('(', '').replace(')', '').trim();
+                    }
                     
                     return {
                         title: titleEl ? titleEl.innerText : "Unknown Title",
                         link: titleEl ? titleEl.href : "",
-                        source: siteEl ? siteEl.innerText.replace('(', '').replace(')', '').trim() : "news.ycombinator.com",
-                        summary: "Automated daily web extraction for trending topics."
+                        source: domain,
+                        summary: "Recent trending AI news."
                     };
                 });
             }""")
