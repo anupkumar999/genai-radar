@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Terminal, Star, GitFork, Clock, BookOpen, Code2, Search, Calendar, TrendingUp, Sparkles, AlertCircle, Copy, Check, Users, Library, FileText, Newspaper, ExternalLink, Globe, Sun, Moon, X, Activity, Settings } from 'lucide-react';
+import { Terminal, Star, GitFork, Clock, BookOpen, Code2, Search, Calendar, TrendingUp, Sparkles, AlertCircle, Copy, Check, Users, Library, FileText, Newspaper, ExternalLink, Globe, Sun, Moon, X, Activity, Settings, Bookmark } from 'lucide-react';
 import { formatDistanceToNow, subMonths, subYears, format } from 'date-fns';
 
 function App() {
@@ -16,9 +16,16 @@ function App() {
   });
 
   // --- AI SUMMARY STATE ---
-  const [geminiKey, setGeminiKey] = useState(localStorage.getItem('gemini_api_key') || '');
+  const [apiKeys, setApiKeys] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('apiKeys')) || { gemini: '', openai: '', anthropic: '' }; }
+    catch { return { gemini: localStorage.getItem('gemini_api_key') || '', openai: '', anthropic: '' }; }
+  });
+  const [activeModel, setActiveModel] = useState(localStorage.getItem('activeModel') || 'gemini');
   const [showKeyModal, setShowKeyModal] = useState(false);
-  const [summaries, setSummaries] = useState({});
+  const [summaries, setSummaries] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('ai_summaries')) || {}; }
+    catch { return {}; }
+  });
   const [summarizing, setSummarizing] = useState(null);
 
   useEffect(() => {
@@ -50,9 +57,39 @@ function App() {
   const [papers, setPapers] = useState([]);
   const [news, setNews] = useState([]);
   const [liveNews, setLiveNews] = useState([]);
-  const [agentNews, setAgentNews] = useState([]);
+  const [agentNews, setAgentNews] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('agentNews'));
+      if (saved && saved.timestamp && Date.now() - saved.timestamp < 12 * 60 * 60 * 1000) {
+        return saved.data;
+      }
+      return [];
+    } catch { return []; }
+  });
   const [loadingResearch, setLoadingResearch] = useState(true);
   const [isAgentRunning, setIsAgentRunning] = useState(false);
+
+  // --- BOOKMARKS STATE ---
+  const [bookmarks, setBookmarks] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('bookmarks')) || []; }
+    catch { return []; }
+  });
+
+  const toggleBookmark = (item, type) => {
+    setBookmarks(prev => {
+      const exists = prev.find(b => b.id === (item.id || item.link || item.url));
+      let next;
+      if (exists) {
+        next = prev.filter(b => b.id !== exists.id);
+      } else {
+        next = [{ ...item, bookmarkType: type, id: item.id || item.link || item.url, savedAt: Date.now() }, ...prev];
+      }
+      localStorage.setItem('bookmarks', JSON.stringify(next));
+      return next;
+    });
+  };
+
+  const isBookmarked = (item) => bookmarks.some(b => b.id === (item.id || item.link || item.url));
 
   // --- TRENDING ALERT STATE ---
   const [trendingAlert, setTrendingAlert] = useState(null);
@@ -81,7 +118,8 @@ function App() {
     { id: 'all-ai', name: 'All AI & ML', query: '"machine learning" OR "artificial intelligence" OR "generative ai"' },
     { id: 'gen-ai', name: 'GenAI & LLMs', query: 'llm OR "generative ai" OR gpt' },
     { id: 'agents', name: 'Agents & RAG', query: 'agents OR rag OR langchain OR autogen' },
-    { id: 'skills', name: 'Engineering', query: 'mlops OR "prompt engineering" OR "fine-tuning"' }
+    { id: 'skills', name: 'Engineering', query: 'mlops OR "prompt engineering" OR "fine-tuning"' },
+    { id: 'frameworks', name: 'Frameworks', query: 'pytorch OR "hugging face" OR ollama OR vllm OR tensorrt' }
   ];
 
   const authors = [
@@ -92,6 +130,8 @@ function App() {
     { id: 'org:meta-llama', name: 'Meta Llama' },
     { id: 'org:huggingface', name: 'Hugging Face' },
     { id: 'org:mistralai', name: 'Mistral AI' },
+    { id: 'org:Stability-AI', name: 'Stability AI' },
+    { id: 'org:vercel', name: 'Vercel (AI SDK)' },
     { id: 'user:karpathy', name: 'Andrej Karpathy' },
     { id: 'user:hwchase17', name: 'Harrison Chase' },
     { id: 'user:ggerganov', name: 'Georgi Gerganov' },
@@ -324,11 +364,19 @@ function App() {
     setTimeout(() => setCopiedId(null), 2000);
   };
 
+  const saveSummary = (repoId, summaryText) => {
+    setSummaries(prev => {
+      const next = { ...prev, [repoId]: summaryText };
+      localStorage.setItem('ai_summaries', JSON.stringify(next));
+      return next;
+    });
+  };
+
   const handleAISummary = async (e, repo) => {
     e.preventDefault();
     e.stopPropagation();
 
-    if (!geminiKey) {
+    if (!apiKeys[activeModel]) {
       setShowKeyModal(true);
       return;
     }
@@ -349,7 +397,7 @@ function App() {
       }
 
       if (!readmeText) {
-        setSummaries(prev => ({ ...prev, [repo.id]: "Could not locate a README.md file for this repository." }));
+        saveSummary(repo.id, "Could not locate a README.md file for this repository.");
         setSummarizing(null);
         return;
       }
@@ -357,7 +405,7 @@ function App() {
       // Truncate to save tokens (first ~12000 chars is usually enough context for deep dives)
       const truncatedReadme = readmeText.substring(0, 12000);
 
-      // 2. Call Gemini 2.5 Flash API
+      // 2. Call the selected AI Model
       const prompt = `You are a Senior AI Architect analyzing a GitHub repository. Read the following README and provide a comprehensive, deeply technical, and structured breakdown of the project.
 
 Your response MUST be formatted EXACTLY like this (do not use markdown headers or bolding, just plain text with these exact section prefixes):
@@ -372,39 +420,71 @@ WHY IT MATTERS: (Explain why a Senior AI Developer would choose this specific to
 
 README CONTENT:
 ${truncatedReadme}`;
-      
-      const geminiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey.trim()}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }]
-        })
-      });
 
-      if (!geminiRes.ok) {
-        const errData = await geminiRes.json();
-        throw new Error(errData.error?.message || `HTTP ${geminiRes.status}`);
+      let summary = "";
+      
+      if (activeModel === 'gemini') {
+        const geminiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKeys.gemini.trim()}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+        });
+        if (!geminiRes.ok) {
+          const errData = await geminiRes.json();
+          throw new Error(errData.error?.message || `HTTP ${geminiRes.status}`);
+        }
+        const geminiData = await geminiRes.json();
+        summary = geminiData.candidates?.[0]?.content?.parts?.[0]?.text;
+      } 
+      else if (activeModel === 'openai') {
+        const oaiRes = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKeys.openai.trim()}` },
+          body: JSON.stringify({ model: 'gpt-4o-mini', messages: [{ role: 'user', content: prompt }] })
+        });
+        if (!oaiRes.ok) {
+          const errData = await oaiRes.json();
+          throw new Error(errData.error?.message || `HTTP ${oaiRes.status}`);
+        }
+        const oaiData = await oaiRes.json();
+        summary = oaiData.choices?.[0]?.message?.content;
+      }
+      else if (activeModel === 'anthropic') {
+        const antRes = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json', 
+            'x-api-key': apiKeys.anthropic.trim(), 
+            'anthropic-version': '2023-06-01',
+            'anthropic-dangerous-direct-browser-access': 'true'
+          },
+          body: JSON.stringify({ model: 'claude-3-haiku-20240307', max_tokens: 1024, messages: [{ role: 'user', content: prompt }] })
+        });
+        if (!antRes.ok) {
+          const errData = await antRes.json();
+          throw new Error(errData.error?.message || `HTTP ${antRes.status}`);
+        }
+        const antData = await antRes.json();
+        summary = antData.content?.[0]?.text;
       }
 
-      const geminiData = await geminiRes.json();
-      const summary = geminiData.candidates?.[0]?.content?.parts?.[0]?.text;
-      
       if (summary) {
-        setSummaries(prev => ({ ...prev, [repo.id]: summary }));
+        saveSummary(repo.id, summary);
       } else {
-        setSummaries(prev => ({ ...prev, [repo.id]: "Failed to generate a summary. The model returned an empty response." }));
+        saveSummary(repo.id, "Failed to generate a summary. The model returned an empty response.");
       }
 
     } catch (error) {
       console.error("AI Summary Error:", error);
-      setSummaries(prev => ({ ...prev, [repo.id]: `API Error: ${error.message}` }));
+      saveSummary(repo.id, `API Error: ${error.message}`);
     } finally {
       setSummarizing(null);
     }
   };
 
-  const saveGeminiKey = () => {
-    localStorage.setItem('gemini_api_key', geminiKey.trim());
+  const saveApiKeys = () => {
+    localStorage.setItem('apiKeys', JSON.stringify(apiKeys));
+    localStorage.setItem('activeModel', activeModel);
     setShowKeyModal(false);
   };
 
@@ -421,6 +501,7 @@ ${truncatedReadme}`;
         const data = await res.json();
         if (data.success && data.news) {
           setAgentNews(data.news);
+          localStorage.setItem('agentNews', JSON.stringify({ timestamp: Date.now(), data: data.news }));
         }
       } else {
         const errData = await res.json();
@@ -475,6 +556,14 @@ ${truncatedReadme}`;
             >
               <Library size={16} /> <span className="hidden sm:inline">Research</span>
             </button>
+            <button 
+              onClick={() => setMainView('bookmarks')}
+              className={`flex items-center gap-2 px-4 sm:px-6 py-2 text-sm font-medium rounded-lg transition-all ${
+                mainView === 'bookmarks' ? 'bg-white dark:bg-white/10 text-blue-700 dark:text-white shadow-sm' : 'text-slate-500 dark:text-zinc-500 hover:text-slate-800 dark:hover:text-zinc-300'
+              }`}
+            >
+              <Bookmark size={16} /> <span className="hidden sm:inline">Saved</span>
+            </button>
           </div>
 
           <div className="flex items-center gap-4">
@@ -517,13 +606,30 @@ ${truncatedReadme}`;
               <Sparkles className="text-indigo-500" /> AI Summaries
             </h3>
             <p className="text-slate-600 dark:text-zinc-400 mb-6 text-sm leading-relaxed">
-              To instantly summarize repositories, please enter a free Google Gemini API Key. You can get one instantly at <a href="https://aistudio.google.com" target="_blank" rel="noreferrer" className="text-indigo-500 hover:underline font-semibold">aistudio.google.com</a>.
+              To instantly summarize repositories, select your preferred model and enter its API key.
             </p>
+
+            <div className="flex gap-2 mb-4 bg-slate-100 dark:bg-black/40 p-1 rounded-xl">
+              {['gemini', 'openai', 'anthropic'].map((model) => (
+                <button
+                  key={model}
+                  onClick={() => setActiveModel(model)}
+                  className={`flex-1 py-1.5 text-xs font-semibold rounded-lg capitalize transition-colors ${
+                    activeModel === model 
+                      ? 'bg-white text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400 shadow-sm border border-slate-200 dark:border-indigo-500/30' 
+                      : 'text-slate-500 dark:text-zinc-400 hover:bg-slate-200 dark:hover:bg-white/5 border border-transparent'
+                  }`}
+                >
+                  {model}
+                </button>
+              ))}
+            </div>
+
             <input 
               type="password" 
-              placeholder="AIzaSy..."
-              value={geminiKey}
-              onChange={(e) => setGeminiKey(e.target.value)}
+              placeholder={activeModel === 'gemini' ? 'AIzaSy...' : activeModel === 'openai' ? 'sk-proj-...' : 'sk-ant-...'}
+              value={apiKeys[activeModel] || ''}
+              onChange={(e) => setApiKeys(prev => ({ ...prev, [activeModel]: e.target.value }))}
               className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl py-3 px-4 text-sm font-medium text-slate-800 dark:text-zinc-200 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 mb-6 transition-all"
             />
             <div className="flex gap-3 justify-end">
@@ -534,7 +640,7 @@ ${truncatedReadme}`;
                 Cancel
               </button>
               <button 
-                onClick={saveGeminiKey}
+                onClick={saveApiKeys}
                 className="px-5 py-2.5 rounded-xl text-sm font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-md transition-colors"
               >
                 Save & Enable
@@ -710,6 +816,13 @@ ${truncatedReadme}`;
                       
                       <div className="flex items-center gap-2 z-20">
                         <button 
+                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleBookmark(repo, 'repo'); }}
+                          className={`shrink-0 p-2.5 rounded-xl border transition-all flex items-center justify-center ${isBookmarked(repo) ? 'bg-amber-50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/20 text-amber-500' : 'bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-400 dark:text-zinc-500 hover:bg-slate-100 dark:hover:bg-white/10 hover:text-slate-600 dark:hover:text-zinc-300'}`}
+                          title="Save Repo"
+                        >
+                          <Bookmark size={16} className={isBookmarked(repo) ? "fill-current" : ""} />
+                        </button>
+                        <button 
                           onClick={(e) => handleAISummary(e, repo)}
                           className="shrink-0 px-3 py-2.5 bg-indigo-50 dark:bg-indigo-500/10 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 border border-indigo-200 dark:border-indigo-500/20 rounded-xl text-indigo-600 dark:text-indigo-400 transition-all backdrop-blur-sm flex items-center gap-1.5 text-xs font-bold"
                           title="Generate AI Summary"
@@ -875,12 +988,20 @@ ${truncatedReadme}`;
                       <div key={idx} className="group bg-white dark:bg-[#121212] border border-slate-200 dark:border-white/5 rounded-3xl p-8 shadow-sm dark:shadow-none hover:border-blue-300 dark:hover:border-white/10 transition-all flex flex-col gap-5 relative overflow-hidden">
                         
                         <div className="flex items-start justify-between gap-6">
-                          <h3 className="text-xl font-semibold text-slate-900 dark:text-zinc-100 leading-snug tracking-tight">
+                          <h3 className="text-xl font-semibold text-slate-900 dark:text-zinc-100 leading-snug tracking-tight pr-10">
                             {paper.title}
                           </h3>
-                          <span className="flex items-center gap-1.5 bg-amber-50 dark:bg-white/5 border border-amber-200 dark:border-white/10 text-amber-700 dark:text-zinc-300 px-3 py-1.5 rounded-xl text-xs font-semibold shrink-0">
-                            <Star size={12} className="text-amber-500 dark:text-amber-400" /> {paper.upvotes}
-                          </span>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <span className="flex items-center gap-1.5 bg-amber-50 dark:bg-white/5 border border-amber-200 dark:border-white/10 text-amber-700 dark:text-zinc-300 px-3 py-1.5 rounded-xl text-xs font-semibold">
+                              <Star size={12} className="text-amber-500 dark:text-amber-400" /> {paper.upvotes}
+                            </span>
+                            <button 
+                              onClick={(e) => { e.preventDefault(); toggleBookmark(paper, 'paper'); }}
+                              className={`p-2 rounded-xl border transition-all ${isBookmarked(paper) ? 'bg-amber-50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/20 text-amber-500' : 'bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300'}`}
+                            >
+                              <Bookmark size={14} className={isBookmarked(paper) ? "fill-current" : ""} />
+                            </button>
+                          </div>
                         </div>
                         
                         <p className="text-xs font-medium text-slate-500 dark:text-zinc-500 tracking-wide">
@@ -912,13 +1033,21 @@ ${truncatedReadme}`;
                   <div className="space-y-4 max-w-4xl mx-auto">
                     {news.map((item, idx) => (
                       <a key={idx} href={item.url} target="_blank" rel="noreferrer" className="group block bg-white dark:bg-[#121212] border border-slate-200 dark:border-white/5 rounded-3xl p-7 shadow-sm dark:shadow-none hover:border-blue-300 dark:hover:border-white/10 transition-all relative overflow-hidden">
-                        <div className="flex items-center gap-3 mb-4">
-                          <span className="bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-zinc-400 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest flex items-center gap-1.5">
-                            <Globe size={10} /> {item.domain}
-                          </span>
-                          <span className="text-xs font-medium text-slate-500 dark:text-zinc-600 flex items-center gap-1.5">
-                            <Clock size={12} /> {formatDistanceToNow(new Date(item.date))} ago
-                          </span>
+                        <div className="flex items-center justify-between mb-4">
+                          <div className="flex items-center gap-3">
+                            <span className="bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-zinc-400 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest flex items-center gap-1.5">
+                              <Globe size={10} /> {item.domain}
+                            </span>
+                            <span className="text-xs font-medium text-slate-500 dark:text-zinc-600 flex items-center gap-1.5">
+                              <Clock size={12} /> {formatDistanceToNow(new Date(item.date))} ago
+                            </span>
+                          </div>
+                          <button 
+                            onClick={(e) => { e.preventDefault(); toggleBookmark(item, 'news'); }}
+                            className={`p-1.5 rounded-lg border transition-all relative z-20 ${isBookmarked(item) ? 'bg-amber-50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/20 text-amber-500' : 'bg-transparent border-transparent text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5'}`}
+                          >
+                            <Bookmark size={14} className={isBookmarked(item) ? "fill-current" : ""} />
+                          </button>
                         </div>
                         <h3 className="text-lg font-semibold text-slate-900 dark:text-zinc-100 group-hover:text-blue-600 dark:group-hover:text-indigo-400 transition-colors mb-5 leading-snug tracking-tight pr-8">
                           {item.title}
@@ -938,16 +1067,24 @@ ${truncatedReadme}`;
                   <div className="space-y-4 max-w-4xl mx-auto">
                     {liveNews.map((item, idx) => (
                       <a key={idx} href={item.url} target="_blank" rel="noreferrer" className="group block bg-white dark:bg-[#121212] border border-slate-200 dark:border-white/5 rounded-3xl p-7 shadow-sm dark:shadow-none hover:border-blue-300 dark:hover:border-white/10 transition-all relative overflow-hidden">
-                        <div className="flex items-center gap-3 mb-4">
-                          <span className="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 text-red-600 dark:text-red-400 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest flex items-center gap-1.5">
-                            <Activity size={10} className="animate-pulse" /> Just In
-                          </span>
-                          <span className="bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-zinc-400 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest flex items-center gap-1.5">
-                            <Globe size={10} /> {item.domain}
-                          </span>
-                          <span className="text-xs font-medium text-slate-500 dark:text-zinc-600 flex items-center gap-1.5">
-                            <Clock size={12} /> {formatDistanceToNow(new Date(item.date))} ago
-                          </span>
+                        <div className="flex items-center justify-between mb-4">
+                          <div className="flex items-center gap-3">
+                            <span className="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 text-red-600 dark:text-red-400 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest flex items-center gap-1.5">
+                              <Activity size={10} className="animate-pulse" /> Just In
+                            </span>
+                            <span className="bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-zinc-400 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest flex items-center gap-1.5">
+                              <Globe size={10} /> {item.domain}
+                            </span>
+                            <span className="text-xs font-medium text-slate-500 dark:text-zinc-600 flex items-center gap-1.5">
+                              <Clock size={12} /> {formatDistanceToNow(new Date(item.date))} ago
+                            </span>
+                          </div>
+                          <button 
+                            onClick={(e) => { e.preventDefault(); toggleBookmark(item, 'liveNews'); }}
+                            className={`p-1.5 rounded-lg border transition-all relative z-20 ${isBookmarked(item) ? 'bg-amber-50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/20 text-amber-500' : 'bg-transparent border-transparent text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5'}`}
+                          >
+                            <Bookmark size={14} className={isBookmarked(item) ? "fill-current" : ""} />
+                          </button>
                         </div>
                         <h3 className="text-lg font-semibold text-slate-900 dark:text-zinc-100 group-hover:text-blue-600 dark:group-hover:text-indigo-400 transition-colors mb-5 leading-snug tracking-tight pr-8">
                           {item.title}
@@ -995,13 +1132,21 @@ ${truncatedReadme}`;
                        </div>
                     ) : agentNews.map((item, idx) => (
                       <a key={idx} href={item.link} target="_blank" rel="noreferrer" className="group block bg-white dark:bg-[#121212] border border-slate-200 dark:border-white/5 rounded-3xl p-7 shadow-sm dark:shadow-none hover:border-amber-300 dark:hover:border-amber-700/50 transition-all relative overflow-hidden">
-                        <div className="flex items-center gap-3 mb-4">
-                          <span className="bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 text-amber-700 dark:text-amber-400 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest flex items-center gap-1.5">
-                            <Sun size={10} className="" /> Dev Update
-                          </span>
-                          <span className="bg-white/60 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-zinc-400 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest flex items-center gap-1.5">
-                            <Globe size={10} /> {item.source}
-                          </span>
+                        <div className="flex items-center justify-between mb-4">
+                          <div className="flex items-center gap-3">
+                            <span className="bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 text-amber-700 dark:text-amber-400 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest flex items-center gap-1.5">
+                              <Sun size={10} className="" /> Dev Update
+                            </span>
+                            <span className="bg-white/60 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-zinc-400 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest flex items-center gap-1.5">
+                              <Globe size={10} /> {item.source}
+                            </span>
+                          </div>
+                          <button 
+                            onClick={(e) => { e.preventDefault(); toggleBookmark(item, 'agentNews'); }}
+                            className={`p-1.5 rounded-lg border transition-all relative z-20 ${isBookmarked(item) ? 'bg-amber-50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/20 text-amber-500' : 'bg-transparent border-transparent text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5'}`}
+                          >
+                            <Bookmark size={14} className={isBookmarked(item) ? "fill-current" : ""} />
+                          </button>
                         </div>
                         <h3 className="text-lg font-semibold text-slate-900 dark:text-zinc-100 group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors mb-3 leading-snug tracking-tight pr-8">
                           {item.title}
@@ -1015,6 +1160,71 @@ ${truncatedReadme}`;
                   </div>
                 )}
               </>
+            )}
+          </div>
+        )}
+
+        {/* ========================================= */}
+        {/* VIEW 3: SAVED (BOOKMARKS)                 */}
+        {/* ========================================= */}
+        {mainView === 'bookmarks' && (
+          <div className="animate-in fade-in duration-700">
+            <div className="mb-10">
+              <h2 className="text-3xl font-semibold text-slate-900 dark:text-zinc-100 flex items-center gap-3 tracking-tight">
+                Reading List
+              </h2>
+              <p className="text-slate-600 dark:text-zinc-500 font-normal mt-2 text-base max-w-2xl leading-relaxed">Your personal collection of saved repositories, papers, and AI news.</p>
+            </div>
+
+            {bookmarks.length === 0 ? (
+              <div className="text-center py-32">
+                <div className="bg-white dark:bg-[#121212] border border-slate-200 dark:border-white/5 rounded-3xl p-12 inline-flex flex-col items-center shadow-sm dark:shadow-none">
+                  <Bookmark size={32} className="text-slate-400 dark:text-zinc-600 mb-6" />
+                  <h3 className="text-lg font-semibold text-slate-900 dark:text-zinc-200 mb-2 tracking-tight">Your Reading List is Empty</h3>
+                  <p className="text-slate-500 dark:text-zinc-500 text-sm max-w-sm">Click the bookmark icon on any repository, research paper, or news article to save it here for later.</p>
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                {bookmarks.sort((a, b) => b.savedAt - a.savedAt).map((item) => (
+                  <div key={item.id} 
+                    onClick={() => window.open(item.html_url || item.url || item.link, '_blank')}
+                    className="cursor-pointer group bg-white dark:bg-[#121212] border border-slate-200 dark:border-white/5 hover:border-amber-300 dark:hover:border-amber-500/50 shadow-sm hover:shadow-md rounded-3xl p-7 transition-all duration-300 flex flex-col h-full relative"
+                  >
+                    <div className="flex items-center justify-between mb-4">
+                      <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest flex items-center gap-1.5 ${
+                        item.bookmarkType === 'repo' ? 'bg-blue-50 dark:bg-indigo-500/10 text-blue-600 dark:text-indigo-400' :
+                        item.bookmarkType === 'paper' ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' :
+                        'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                      }`}>
+                        {item.bookmarkType === 'repo' ? <Code2 size={10} /> : item.bookmarkType === 'paper' ? <FileText size={10} /> : <Newspaper size={10} />}
+                        {item.bookmarkType === 'repo' ? 'Repository' : item.bookmarkType === 'paper' ? 'Research Paper' : 'News Article'}
+                      </span>
+                      <button 
+                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleBookmark(item, item.bookmarkType); }}
+                        className="p-2 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 text-amber-500 transition-all z-20"
+                      >
+                        <Bookmark size={16} className="fill-current" />
+                      </button>
+                    </div>
+
+                    <h3 className="text-lg font-bold text-slate-900 dark:text-white leading-tight tracking-tight break-all group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors mb-3">
+                      {item.bookmarkType === 'repo' ? `${item.full_name.split('/')[0]} / ${item.name}` : item.title}
+                    </h3>
+                    
+                    <p className="text-slate-600 dark:text-zinc-400 text-sm line-clamp-3 mb-6 flex-grow font-normal leading-relaxed">
+                      {item.description || item.summary || "No description provided."}
+                    </p>
+
+                    <div className="flex items-center justify-between mt-auto pt-4 border-t border-slate-100 dark:border-white/5">
+                      <span className="text-xs font-medium text-slate-500 dark:text-zinc-500">
+                        Saved {formatDistanceToNow(new Date(item.savedAt))} ago
+                      </span>
+                      <ExternalLink size={14} className="text-slate-400 dark:text-zinc-600 group-hover:text-amber-500 transition-colors" />
+                    </div>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
         )}
